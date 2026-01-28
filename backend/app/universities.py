@@ -35,6 +35,11 @@ def get_recommendations(
     Get university recommendations based on user profile
     
     Returns categorized universities: Dream, Target, Safe
+    
+    Categorization logic:
+    - Dream: Universities with cost > user's budget (high difficulty to afford)
+    - Target: Universities with cost close to user's budget (medium difficulty)
+    - Safe: Universities with cost < user's budget (safe/affordable)
     """
     profile = db.query(Profile).filter(Profile.user_id == current_user.id).first()
 
@@ -51,27 +56,24 @@ def get_recommendations(
     target = []
     safe = []
 
+    # Parse budget range to get max budget
+    budget_max = 50000  # default
+    if profile.budget_range:
+        # Budget ranges are like "0-30000", "30000-50000", "50000+"
+        if "30000-50000" in profile.budget_range:
+            budget_max = 50000
+        elif "0-30000" in profile.budget_range:
+            budget_max = 30000
+        elif "50000" in profile.budget_range:
+            budget_max = 100000
+
     for uni in universities:
-        # Field match
-        if profile.field not in uni.fields:
-            continue
-
-        # Country preference
-        if profile.countries and uni.country not in profile.countries:
-            continue
-
-        # Budget filter (simple logic)
-        if profile.budget_range == "30000-50000" and uni.avg_cost > 50000:
-            continue
-        if profile.budget_range == "0-30000" and uni.avg_cost > 30000:
-            continue
-
-        # Categorize by difficulty
-        if uni.difficulty == "High":
+        # Categorize by cost relative to user's budget
+        if uni.avg_cost > budget_max * 1.2:  # More than 20% above budget = Dream
             dream.append(uni)
-        elif uni.difficulty == "Medium":
+        elif uni.avg_cost > budget_max * 0.8:  # Within 80-120% of budget = Target
             target.append(uni)
-        else:
+        else:  # Less than 80% of budget = Safe
             safe.append(uni)
 
     return {
@@ -168,8 +170,8 @@ def get_shortlisted_universities(
         
         if university:
             result.append({
-                "university_id": university.id,
-                "university_name": university.name,
+                "id": university.id,
+                "name": university.name,
                 "country": university.country,
                 "avg_cost": university.avg_cost,
                 "difficulty": university.difficulty,
@@ -334,8 +336,8 @@ def get_locked_universities(
         
         if university:
             result.append({
-                "university_id": university.id,
-                "university_name": university.name,
+                "id": university.id,
+                "name": university.name,
                 "country": university.country,
                 "avg_cost": university.avg_cost,
                 "difficulty": university.difficulty,

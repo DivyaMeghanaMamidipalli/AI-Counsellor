@@ -12,7 +12,7 @@ from dotenv import load_dotenv
 
 from .database import get_db
 from .models import User
-from .schemas import SignupRequest, LoginRequest, TokenResponse
+from .schemas import SignupRequest, LoginRequest, TokenResponse, ChangePasswordRequest
 
 load_dotenv()
 
@@ -193,4 +193,30 @@ def get_current_user_info(
         "email": current_user.email,
         "onboarding_completed": current_user.onboarding_completed,
         "current_stage": current_user.current_stage
+    }
+
+
+@router.post("/change-password")
+def change_password(
+    request: ChangePasswordRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Change user password
+    """
+    # Verify old password
+    if not verify_password(request.old_password, current_user.password):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect current password"
+        )
+    
+    # Update password
+    current_user.password = hash_password(request.new_password)
+    db.add(current_user)
+    db.commit()
+    
+    return {
+        "message": "Password changed successfully"
     }

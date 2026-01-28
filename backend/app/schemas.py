@@ -29,6 +29,11 @@ class TokenResponse(BaseModel):
     email: str
 
 
+class ChangePasswordRequest(BaseModel):
+    old_password: str = Field(..., min_length=1)
+    new_password: str = Field(..., min_length=6, max_length=100)
+
+
 # ============================================
 # ONBOARDING SCHEMAS
 # ============================================
