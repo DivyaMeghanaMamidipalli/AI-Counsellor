@@ -64,7 +64,6 @@ class University(Base):
     name = Column(Text)
     country = Column(Text)
     avg_cost = Column(Integer)
-    difficulty = Column(Text)  # "Low" / "Medium" / "High"
     fields = Column(ARRAY(Text))  # Array of fields/degrees offered
 
     # Relationships

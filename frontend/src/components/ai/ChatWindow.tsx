@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Button } from '../common/Button';
+import { counsellorApi } from '../../api/counsellor';
 
 interface Message {
   id: string;
@@ -13,6 +14,7 @@ interface ActionSuggestion {
   type: 'shortlist' | 'lock' | 'create_task';
   label: string;
   data: any;
+  status?: 'executed' | 'skipped' | 'failed' | string;
 }
 
 interface ChatWindowProps {
@@ -54,24 +56,32 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ onActionExecute }) => {
     setInput('');
     setIsLoading(true);
 
-    // Simulate AI response (replace with actual API call)
-    setTimeout(() => {
+    try {
+      const response = await counsellorApi.sendMessage(userMessage.content);
       const aiMessage: Message = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
-        content: "I understand your query. Based on your profile, I can help you with university recommendations, application guidance, or answer any specific questions you have. What would you like to focus on?",
+        content: response.reply || 'Here is what I recommend based on your profile.',
         timestamp: new Date(),
-        actions: [
-          {
-            type: 'shortlist',
-            label: 'View University Recommendations',
-            data: {},
-          },
-        ],
+        actions: (response.actions || []).map((action) => ({
+          type: (action.type as ActionSuggestion['type']) || 'create_task',
+          label: `${(action.status || 'executed').toUpperCase()}: ${action.message}`,
+          status: action.status,
+          data: action,
+        })),
       };
       setMessages((prev) => [...prev, aiMessage]);
+    } catch (error) {
+      const aiMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        role: 'assistant',
+        content: 'Sorry, I ran into an issue while processing that. Please try again.',
+        timestamp: new Date(),
+      };
+      setMessages((prev) => [...prev, aiMessage]);
+    } finally {
       setIsLoading(false);
-    }, 1500);
+    }
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -115,13 +125,22 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ onActionExecute }) => {
               {message.actions && message.actions.length > 0 && (
                 <div className="mt-3 space-y-2">
                   {message.actions.map((action, idx) => (
-                    <button
-                      key={idx}
-                      onClick={() => onActionExecute?.(action)}
-                      className="w-full px-3 py-2 text-sm bg-white text-sand-700 rounded-lg hover:bg-sand-50 transition-colors border border-sand-300"
-                    >
-                      {action.label}
-                    </button>
+                    action.status ? (
+                      <div
+                        key={idx}
+                        className="w-full px-3 py-2 text-xs bg-nude-50 text-nude-700 rounded-lg border border-nude-200"
+                      >
+                        {action.label}
+                      </div>
+                    ) : (
+                      <button
+                        key={idx}
+                        onClick={() => onActionExecute?.(action)}
+                        className="w-full px-3 py-2 text-sm bg-white text-sand-700 rounded-lg hover:bg-sand-50 transition-colors border border-sand-300"
+                      >
+                        {action.label}
+                      </button>
+                    )
                   ))}
                 </div>
               )}

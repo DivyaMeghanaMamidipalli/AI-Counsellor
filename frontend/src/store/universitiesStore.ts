@@ -15,7 +15,7 @@ interface UniversitiesState {
   fetchAll: (force?: boolean) => Promise<void>;
   shortlistUniversity: (universityId: number) => Promise<void>;
   lockUniversity: (universityId: number) => Promise<void>;
-  unlockUniversity: (universityId: number) => Promise<void>;
+  unlockUniversity: (universityId: number) => Promise<string | null>;
   removeFromShortlist: (universityId: number) => Promise<void>;
   invalidateCache: () => void;
 }
@@ -109,7 +109,7 @@ export const useUniversitiesStore = create<UniversitiesState>(
 
       unlockUniversity: async (universityId: number) => {
         try {
-          await universitiesApi.unlockUniversity(universityId);
+          const response = await universitiesApi.unlockUniversity(universityId);
           // Optimistic update: move from locked to shortlisted
           const state = get();
           const university = state.locked.find((u) => u.id === universityId);
@@ -121,6 +121,7 @@ export const useUniversitiesStore = create<UniversitiesState>(
               lastFetchTime: null, // Invalidate cache
             });
           }
+          return response.warning ?? null;
         } catch (error: any) {
           set({ error: error.response?.data?.message || 'Failed to unlock university' });
           throw error;

@@ -1,6 +1,8 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { QueryClientProvider } from '@tanstack/react-query';
 import { ProtectedRoute } from './routes/ProtectedRoute';
+import { queryClient } from './lib/queryClient';
 
 // Pages
 import { Landing } from './pages/Landing';
@@ -16,8 +18,9 @@ import { Profile } from './pages/Profile';
 
 function App() {
   return (
-    <Router>
-      <Routes>
+    <QueryClientProvider client={queryClient}>
+      <Router>
+        <Routes>
         {/* Public Routes */}
         <Route path="/" element={<Landing />} />
         <Route path="/login" element={<Login />} />
@@ -85,6 +88,7 @@ function App() {
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Router>
+    </QueryClientProvider>
   );
 }
 

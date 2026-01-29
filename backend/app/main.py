@@ -63,6 +63,7 @@ from .onboarding import router as onboarding_router
 from .dashboard import router as dashboard_router
 from .universities import router as universities_router
 from .tasks import router as tasks_router
+from .ai_counsellor import router as ai_counsellor_router
 
 # Include routers with proper prefixes
 app.include_router(auth_router, prefix="/api/auth", tags=["Authentication"])
@@ -70,6 +71,7 @@ app.include_router(onboarding_router, prefix="/api", tags=["Onboarding"])
 app.include_router(dashboard_router, prefix="/api", tags=["Dashboard"])
 app.include_router(universities_router, prefix="/api", tags=["Universities"])
 app.include_router(tasks_router, prefix="/api", tags=["Tasks"])
+app.include_router(ai_counsellor_router, prefix="/api", tags=["AI Counsellor"])
 
 
 # Optional: Add a route to list all available endpoints

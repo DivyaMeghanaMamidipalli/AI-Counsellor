@@ -5,10 +5,12 @@ export interface University {
   name: string;
   country: string;
   avg_cost: number;
-  difficulty: string;
   fields: string[];
   category?: string;
   locked?: boolean;
+  cost_fit?: string | null;
+  risk_level?: string | null;
+  acceptance_likelihood?: string | null;
 }
 
 export interface ShortlistRequest {
@@ -18,6 +20,11 @@ export interface ShortlistRequest {
 
 export interface LockUniversityRequest {
   university_id: number;
+}
+
+export interface UnlockUniversityResponse {
+  message: string;
+  warning?: string | null;
 }
 
 export const universitiesApi = {
@@ -46,7 +53,7 @@ export const universitiesApi = {
     return response.data;
   },
 
-  unlockUniversity: async (universityId: number): Promise<{ message: string }> => {
+  unlockUniversity: async (universityId: number): Promise<UnlockUniversityResponse> => {
     const response = await apiClient.post('/api/universities/unlock', {
       university_id: universityId,
     });

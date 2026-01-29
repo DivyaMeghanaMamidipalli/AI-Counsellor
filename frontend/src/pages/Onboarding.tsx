@@ -5,6 +5,14 @@ import { Input, Select } from '../components/common/Input';
 import { useProfileStore } from '../store/profileStore';
 import { useUniversitiesStore } from '../store/universitiesStore';
 import { ProgressBar } from '../components/common/ProgressBar';
+import { apiClient } from '../api/client';
+import {
+  COUNTRY_OPTIONS,
+  EDUCATION_LEVELS,
+  BUDGET_RANGES,
+  FUNDING_TYPES,
+  EXAM_STATUSES,
+} from '../lib/constants';
 
 export const Onboarding: React.FC = () => {
   const navigate = useNavigate();
@@ -12,9 +20,29 @@ export const Onboarding: React.FC = () => {
   const { invalidateCache: invalidateUniversitiesCache } = useUniversitiesStore();
   const [currentStep, setCurrentStep] = useState(1);
   const totalSteps = 4;
+  const [availableFields, setAvailableFields] = useState<string[]>([]);
 
   // Detect if we're in edit mode
   const isEditMode = isOnboardingComplete;
+
+  // Load available fields from backend on mount
+  useEffect(() => {
+    const loadOptions = async () => {
+      try {
+        const response = await apiClient.get('/universities/options');
+        setAvailableFields(response.data.field_options || []);
+      } catch (error) {
+        console.error('Failed to load field options:', error);
+        // Fallback to default fields
+        setAvailableFields([
+          "Computer Science / IT",
+          "Data Science / Analytics",
+          "Engineering"
+        ]);
+      }
+    };
+    loadOptions();
+  }, []);
 
   const [formData, setFormData] = useState({
     // Academic Background
@@ -127,19 +155,20 @@ export const Onboarding: React.FC = () => {
               onChange={handleChange}
               options={[
                 { value: '', label: 'Select level' },
-                { value: 'High School', label: 'High School' },
-                { value: 'Undergraduate', label: 'Undergraduate' },
-                { value: 'Graduate', label: 'Graduate' },
-                { value: 'Postgraduate', label: 'Postgraduate' },
+                ...EDUCATION_LEVELS.map(level => ({ value: level, label: level }))
               ]}
             />
 
-            <Input
-              label="Degree / Major"
+            <Select
+              label="Current Degree / Major"
               name="major"
               value={formData.major}
               onChange={handleChange}
-              placeholder="e.g., Computer Science, Business Administration"
+              options={[
+                { value: '', label: 'Select your major' },
+                ...availableFields.map(field => ({ value: field, label: field }))
+              ]}
+              helperText="Select from available field options"
             />
 
             <Input
@@ -183,12 +212,16 @@ export const Onboarding: React.FC = () => {
               ]}
             />
 
-            <Input
-              label="Field of Study"
+            <Select
+              label="Intended Field of Study"
               name="field"
               value={formData.field}
               onChange={handleChange}
-              placeholder="e.g., Data Science, International Business"
+              options={[
+                { value: '', label: 'Select intended field' },
+                ...availableFields.map(field => ({ value: field, label: field }))
+              ]}
+              helperText="Choose from the fields offered by universities"
             />
 
             <Input
@@ -204,7 +237,7 @@ export const Onboarding: React.FC = () => {
                 Preferred Countries
               </label>
               <div className="grid grid-cols-2 gap-3">
-                {['USA', 'UK', 'Canada', 'Australia', 'Germany', 'Singapore'].map((country) => (
+                {COUNTRY_OPTIONS.map((country) => (
                   <button
                     key={country}
                     type="button"
@@ -230,12 +263,15 @@ export const Onboarding: React.FC = () => {
               {isEditMode ? 'Edit Profile - Budget & Funding' : 'Budget & Funding'}
             </h2>
             
-            <Input
-              label="Budget Range"
+            <Select
+              label="Annual Budget"
               name="budget_range"
               value={formData.budget_range}
               onChange={handleChange}
-              placeholder="e.g., 10000-50000 USD per year"
+              options={[
+                { value: '', label: 'Select budget range' },
+                ...BUDGET_RANGES.map(range => ({ value: range, label: `$${range}` }))
+              ]}
             />
 
             <Select
@@ -245,10 +281,7 @@ export const Onboarding: React.FC = () => {
               onChange={handleChange}
               options={[
                 { value: '', label: 'Select funding type' },
-                { value: 'Self-funded', label: 'Self-funded' },
-                { value: 'Scholarship-dependent', label: 'Scholarship-dependent' },
-                { value: 'Loan-dependent', label: 'Loan-dependent' },
-                { value: 'Mixed', label: 'Mixed (Multiple sources)' },
+                ...FUNDING_TYPES.map(type => ({ value: type, label: type }))
               ]}
             />
           </div>
@@ -268,10 +301,7 @@ export const Onboarding: React.FC = () => {
               onChange={handleChange}
               options={[
                 { value: '', label: 'Select status' },
-                { value: 'Not started', label: 'Not started' },
-                { value: 'Scheduled', label: 'Scheduled' },
-                { value: 'Completed', label: 'Completed' },
-                { value: 'Not required', label: 'Not required' },
+                ...EXAM_STATUSES.map(status => ({ value: status, label: status }))
               ]}
             />
 
@@ -282,10 +312,7 @@ export const Onboarding: React.FC = () => {
               onChange={handleChange}
               options={[
                 { value: '', label: 'Select status' },
-                { value: 'Not started', label: 'Not started' },
-                { value: 'Scheduled', label: 'Scheduled' },
-                { value: 'Completed', label: 'Completed' },
-                { value: 'Not required', label: 'Not required' },
+                ...EXAM_STATUSES.map(status => ({ value: status, label: status }))
               ]}
             />
 
@@ -298,7 +325,7 @@ export const Onboarding: React.FC = () => {
                 { value: '', label: 'Select status' },
                 { value: 'Not started', label: 'Not started' },
                 { value: 'Draft', label: 'Draft' },
-                { value: 'Ready', label: 'Ready' },
+                { value: 'Completed', label: 'Completed' },
               ]}
             />
 
@@ -350,7 +377,29 @@ export const Onboarding: React.FC = () => {
 
           {/* Navigation Buttons */}
           <div className="flex gap-4 mt-8">
-            {isEditMode && (
+            {currentStep > 1 && (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleBack}
+                className="flex-1"
+              >
+                ← Back
+              </Button>
+            )}
+            
+            {!isEditMode && currentStep === 1 && (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => navigate('/')}
+                className="flex-1"
+              >
+                Cancel
+              </Button>
+            )}
+
+            {isEditMode && currentStep === 1 && (
               <Button
                 type="button"
                 variant="outline"
@@ -358,17 +407,6 @@ export const Onboarding: React.FC = () => {
                 className="flex-1"
               >
                 Cancel
-              </Button>
-            )}
-            
-            {currentStep > 1 && !isEditMode && (
-              <Button
-                type="button"
-                variant="outline"
-                onClick={handleBack}
-                className="flex-1"
-              >
-                Back
               </Button>
             )}
             

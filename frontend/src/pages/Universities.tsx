@@ -47,7 +47,17 @@ export const Universities: React.FC = () => {
 
   const handleUnlock = async (universityId: number) => {
     try {
-      await unlockUniversity(universityId);
+      const shouldUnlock = window.confirm(
+        'Unlocking a university signals a change in commitment. You can unlock later if needed, but do it intentionally to stay focused.\n\nDo you want to continue?'
+      );
+      if (!shouldUnlock) {
+        return;
+      }
+
+      const warning = await unlockUniversity(universityId);
+      if (warning) {
+        window.alert(warning);
+      }
       invalidateProfileCache(); // Invalidate profile cache
       await fetchDashboard(true); // Force refresh dashboard to update stage
     } catch (error) {
@@ -75,6 +85,10 @@ export const Universities: React.FC = () => {
     return chance === 'High' ? 'success' : chance === 'Medium' ? 'warning' : 'info';
   };
 
+  const getRiskBadgeVariant = (risk: string) => {
+    return risk === 'Low' ? 'success' : risk === 'Medium' ? 'warning' : 'danger';
+  };
+
   const renderUniversityCard = (university: University, context: 'recommendations' | 'shortlisted' | 'locked' = 'recommendations') => (
     <Card key={university.id} hover>
       <CardContent>
@@ -94,9 +108,9 @@ export const Universities: React.FC = () => {
 
         <div className="grid grid-cols-2 gap-3 mb-4">
           <div>
-            <p className="text-xs text-nude-600 mb-1">Difficulty Level</p>
-            <Badge variant={university.difficulty === 'Low' ? 'success' : university.difficulty === 'Medium' ? 'warning' : 'danger'} size="sm">
-              {university.difficulty}
+            <p className="text-xs text-nude-600 mb-1">Acceptance Likelihood</p>
+            <Badge variant={getChanceBadgeVariant(university.acceptance_likelihood || 'Medium')} size="sm">
+              {university.acceptance_likelihood || 'Medium'}
             </Badge>
           </div>
           <div>
@@ -104,7 +118,17 @@ export const Universities: React.FC = () => {
             <Badge variant={university.avg_cost < 20000 ? 'success' : university.avg_cost < 40000 ? 'warning' : 'danger'} size="sm">
               ${(university.avg_cost / 1000).toFixed(0)}K
             </Badge>
+            {university.cost_fit && (
+              <p className="text-[10px] text-nude-500 mt-1">Cost fit: {university.cost_fit}</p>
+            )}
           </div>
+        </div>
+
+        <div className="mb-4">
+          <p className="text-xs text-nude-600 mb-1">Risk Level</p>
+          <Badge variant={getRiskBadgeVariant(university.risk_level || 'Medium')} size="sm">
+            {university.risk_level || 'Medium'}
+          </Badge>
         </div>
 
         <div className="mb-4">
@@ -229,11 +253,54 @@ export const Universities: React.FC = () => {
 
         {/* Content */}
         {activeTab === 'recommendations' && recommendations && (
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {(recommendations.dream || [])
-              .concat(recommendations.target || [])
-              .concat(recommendations.safe || [])
-              .map((uni) => renderUniversityCard(uni, 'recommendations'))}
+          <div className="space-y-8">
+            {/* Dream Universities */}
+            {recommendations.dream && recommendations.dream.length > 0 && (
+              <div>
+                <div className="mb-4">
+                  <h2 className="text-xl font-bold text-sand-700 mb-1">🌟 Dream Universities</h2>
+                  <p className="text-sm text-nude-600">Reach goals - higher competition or cost. Requires strong preparation.</p>
+                </div>
+                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {recommendations.dream.map((uni) => renderUniversityCard(uni, 'recommendations'))}
+                </div>
+              </div>
+            )}
+
+            {/* Target Universities */}
+            {recommendations.target && recommendations.target.length > 0 && (
+              <div>
+                <div className="mb-4">
+                  <h2 className="text-xl font-bold text-sand-700 mb-1">🎯 Target Universities</h2>
+                  <p className="text-sm text-nude-600">Well-matched options - balanced opportunity with reasonable effort.</p>
+                </div>
+                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {recommendations.target.map((uni) => renderUniversityCard(uni, 'recommendations'))}
+                </div>
+              </div>
+            )}
+
+            {/* Safe Universities */}
+            {recommendations.safe && recommendations.safe.length > 0 && (
+              <div>
+                <div className="mb-4">
+                  <h2 className="text-xl font-bold text-sand-700 mb-1">🛟 Safe Universities</h2>
+                  <p className="text-sm text-nude-600">Strong match - your profile aligns well, high acceptance likelihood.</p>
+                </div>
+                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {recommendations.safe.map((uni) => renderUniversityCard(uni, 'recommendations'))}
+                </div>
+              </div>
+            )}
+
+            {/* No recommendations */}
+            {(!recommendations.dream || recommendations.dream.length === 0) &&
+             (!recommendations.target || recommendations.target.length === 0) &&
+             (!recommendations.safe || recommendations.safe.length === 0) && (
+              <div className="flex flex-col items-center justify-center py-12">
+                <p className="text-nude-600 mb-4">No universities match your criteria. Try adjusting your preferences.</p>
+              </div>
+            )}
           </div>
         )}
 

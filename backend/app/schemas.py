@@ -148,8 +148,11 @@ class UniversityResponse(BaseModel):
     name: str
     country: str
     avg_cost: int
-    difficulty: str
     fields: List[str]
+    cost_fit: Optional[str] = None
+    risk_level: Optional[str] = None
+    acceptance_likelihood: Optional[str] = None
+    category: Optional[str] = None
 
 
 # ============================================

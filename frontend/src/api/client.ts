@@ -7,6 +7,7 @@ export const apiClient = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
+  timeout: 30000, // 30 second timeout
 });
 
 // Request interceptor to add auth token
@@ -21,14 +22,32 @@ apiClient.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-// Response interceptor for error handling
+// Response interceptor for error handling and retry logic
 apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
+    // Handle 401 Unauthorized
     if (error.response?.status === 401) {
       localStorage.removeItem('authToken');
       window.location.href = '/login';
     }
+    
+    // Handle timeout errors
+    if (error.code === 'ECONNABORTED') {
+      return Promise.reject({
+        ...error,
+        message: 'Request timeout - Server took too long to respond'
+      });
+    }
+    
+    // Handle network errors
+    if (!error.response) {
+      return Promise.reject({
+        ...error,
+        message: 'Network error - Unable to reach the server'
+      });
+    }
+    
     return Promise.reject(error);
   }
 );
