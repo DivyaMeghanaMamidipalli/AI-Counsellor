@@ -34,6 +34,11 @@ class ChangePasswordRequest(BaseModel):
     new_password: str = Field(..., min_length=6, max_length=100)
 
 
+class ResetPasswordRequest(BaseModel):
+    email: EmailStr
+    new_password: str = Field(..., min_length=6, max_length=100)
+
+
 # ============================================
 # ONBOARDING SCHEMAS
 # ============================================
@@ -153,6 +158,7 @@ class UniversityResponse(BaseModel):
     risk_level: Optional[str] = None
     acceptance_likelihood: Optional[str] = None
     category: Optional[str] = None
+    why_medium: Optional[List[str]] = None
 
 
 # ============================================

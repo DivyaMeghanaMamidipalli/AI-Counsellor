@@ -6,33 +6,33 @@
 
 @layer base {
   body {
-    @apply bg-nude-50 text-nude-900 antialiased;
+    @apply bg-neutral-50 text-neutral-900 antialiased;
   }
   
   * {
-    @apply border-nude-200;
+    @apply border-neutral-200;
   }
 }
 
 @layer components {
   .btn-primary {
-    @apply bg-sand-700 text-white px-6 py-3 rounded-lg font-medium hover:bg-sand-800 transition-all duration-200 shadow-soft hover:shadow-soft-lg;
+    @apply bg-primary-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-primary-700 transition-all duration-200 shadow-md hover:shadow-lg;
   }
   
   .btn-secondary {
-    @apply bg-nude-100 text-nude-800 px-6 py-3 rounded-lg font-medium hover:bg-nude-200 transition-all duration-200;
+    @apply bg-neutral-100 text-neutral-800 px-6 py-3 rounded-lg font-medium hover:bg-neutral-200 transition-all duration-200;
   }
   
   .btn-outline {
-    @apply border-2 border-sand-600 text-sand-700 px-6 py-3 rounded-lg font-medium hover:bg-sand-50 transition-all duration-200;
+    @apply border-2 border-primary-600 text-primary-700 px-6 py-3 rounded-lg font-medium hover:bg-primary-50 transition-all duration-200;
   }
   
   .card {
-    @apply bg-white rounded-xl shadow-soft p-6 border border-nude-100;
+    @apply bg-white rounded-xl shadow-md p-6 border border-neutral-100;
   }
   
   .input-field {
-    @apply w-full px-4 py-3 rounded-lg border-2 border-nude-200 focus:border-sand-500 focus:outline-none transition-colors bg-white text-nude-900;
+    @apply w-full px-4 py-3 rounded-lg border-2 border-neutral-200 focus:border-primary-500 focus:outline-none transition-colors bg-white text-neutral-900;
   }
   
   .stage-badge {
@@ -42,7 +42,7 @@
 
 @layer utilities {
   .text-gradient {
-    @apply bg-gradient-to-r from-sand-700 to-nude-700 bg-clip-text text-transparent;
+    @apply bg-gradient-to-r from-primary-600 to-accent-600 bg-clip-text text-transparent;
   }
 }
 

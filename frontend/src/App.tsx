@@ -8,7 +8,7 @@ import { queryClient } from './lib/queryClient';
 import { Landing } from './pages/Landing';
 import { Login } from './pages/Login';
 import { Signup } from './pages/Signup';
-import { Home } from './pages/Home';
+import { ForgotPassword } from './pages/ForgotPassword';
 import { Onboarding } from './pages/Onboarding';
 import { Dashboard } from './pages/Dashboard';
 import { Counsellor } from './pages/Counsellor';
@@ -25,16 +25,10 @@ function App() {
         <Route path="/" element={<Landing />} />
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
 
         {/* Protected Routes */}
-        <Route
-          path="/home"
-          element={
-            <ProtectedRoute>
-              <Home />
-            </ProtectedRoute>
-          }
-        />
+        <Route path="/home" element={<Navigate to="/dashboard" replace />} />
         <Route
           path="/onboarding"
           element={
@@ -46,7 +40,7 @@ function App() {
         <Route
           path="/dashboard"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute requireOnboarding={false}>
               <Dashboard />
             </ProtectedRoute>
           }

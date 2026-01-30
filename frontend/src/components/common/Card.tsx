@@ -23,7 +23,7 @@ export const Card: React.FC<CardProps> = ({
 
   return (
     <div
-      className={`bg-white rounded-xl shadow-soft border border-nude-100 ${paddings[padding]} ${hoverStyle} ${className}`}
+      className={`bg-white rounded-xl shadow-md border border-neutral-100 ${paddings[padding]} ${hoverStyle} ${className}`}
     >
       {children}
     </div>
@@ -45,7 +45,7 @@ interface CardTitleProps {
 }
 
 export const CardTitle: React.FC<CardTitleProps> = ({ children, className = '' }) => {
-  return <h3 className={`text-xl font-semibold text-nude-900 ${className}`}>{children}</h3>;
+  return <h3 className={`text-xl font-semibold text-neutral-900 ${className}`}>{children}</h3>;
 };
 
 interface CardContentProps {

@@ -103,26 +103,51 @@ def field_match_bonus(profile: Profile, uni: University) -> int:
     """Award bonus points if university has the student's target field"""
     if not uni.fields or not profile.field:
         return 0
-    
-    # Get field keywords
-    field_keywords = FIELD_CATEGORIES.get(profile.field, [])
-    if not field_keywords:
-        # Fallback to old normalization logic
-        normalized_target = normalize_field(profile.field)
-        for uni_field in uni.fields:
-            if normalized_target in normalize_field(uni_field) or normalize_field(uni_field) in normalized_target:
-                return 10
-        return 0
-    
-    # Check if university offers keywords related to student's field
-    normalized_keywords = [normalize_field(kw) for kw in field_keywords]
+
+    normalized_target = normalize_field(profile.field)
+    for uni_field in uni.fields:
+        if normalize_field(uni_field) == normalized_target:
+            return 10
+
+    related_fields = set()
+    if profile.major and profile.major in MAJOR_TO_FIELDS:
+        related_fields.update(MAJOR_TO_FIELDS[profile.major])
+    related_fields.update(FIELD_CATEGORIES.get(profile.field, []))
+
+    normalized_related = [normalize_field(field) for field in related_fields if field]
     for uni_field in uni.fields:
         normalized_uni = normalize_field(uni_field)
-        for keyword in normalized_keywords:
-            if keyword in normalized_uni or normalized_uni in keyword:
-                return 10
-    
+        for keyword in normalized_related:
+            if keyword and (keyword in normalized_uni or normalized_uni in keyword):
+                return 5
+
     return 0
+
+
+def readiness_messages(profile: Profile, cost_fit: str) -> list[str]:
+    messages: list[str] = []
+
+    if not profile.ielts_status or profile.ielts_status.strip().lower() not in {"completed", "done", "ready"}:
+        messages.append("IELTS not completed")
+
+    if not profile.gre_status or profile.gre_status.strip().lower() not in {"completed", "done", "ready"}:
+        messages.append("GRE/GMAT not completed")
+
+    if not profile.sop_status:
+        messages.append("SOP not started")
+    else:
+        sop_normalized = profile.sop_status.strip().lower()
+        if sop_normalized in {"not started"}:
+            messages.append("SOP not started")
+        elif sop_normalized in {"draft"}:
+            messages.append("SOP in draft")
+        elif sop_normalized not in {"completed", "ready"}:
+            messages.append("SOP not completed")
+
+    if cost_fit in {"Stretch", "Over budget"}:
+        messages.append("Budget is a stretch")
+
+    return messages
 
 
 def field_matches(profile: Profile, uni: University) -> bool:
@@ -248,28 +273,36 @@ def acceptance_likelihood(score: int) -> str:
     return "Low"
 
 
-def risk_level(acceptance: str, cost_fit: str) -> str:
-    if cost_fit == "Over budget" or acceptance == "Low":
+def risk_level(academic_score_points: int, cost_fit: str) -> str:
+    if cost_fit == "Over budget":
         return "High"
-    if acceptance == "High" and cost_fit in {"Comfortable", "Manageable"}:
+    if academic_score_points >= 40 and cost_fit in {"Comfortable", "Manageable"}:
         return "Low"
+    if academic_score_points <= 10 and cost_fit in {"Stretch", "Over budget"}:
+        return "High"
     return "Medium"
 
 
-def category_label(acceptance: str, cost_fit: str) -> str:
-    if acceptance == "Low" or cost_fit in {"Stretch", "Over budget"}:
-        return "Dream"
-    if acceptance == "High" and cost_fit in {"Comfortable", "Manageable"}:
+def category_label(avg_cost: int, max_budget: Optional[int]) -> str:
+    if max_budget is None:
+        return "Target"
+
+    if avg_cost <= max_budget:
         return "Safe"
-    return "Target"
+
+    if avg_cost <= int(max_budget * 1.2):
+        return "Target"
+
+    return "Dream"
 
 
 def build_university_card(uni: University, profile: Profile, category_override: Optional[str] = None) -> dict:
     min_budget, max_budget = parse_budget_range(profile.budget_range)
     tolerance = get_funding_tolerance(profile.funding_type)
 
+    academic_score_points = academic_points(profile.academic_score)
     score = (
-        academic_points(profile.academic_score)
+        academic_score_points
         + budget_points(uni.avg_cost, min_budget, max_budget, tolerance)
         + status_points(profile.ielts_status)
         + status_points(profile.gre_status)
@@ -279,8 +312,9 @@ def build_university_card(uni: University, profile: Profile, category_override: 
 
     cost_fit = cost_fit_label(uni.avg_cost, min_budget, max_budget, tolerance)
     acceptance = acceptance_likelihood(score)
-    risk = risk_level(acceptance, cost_fit)
-    category = category_override or category_label(acceptance, cost_fit)
+    risk = risk_level(academic_score_points, cost_fit)
+    category = category_override or category_label(uni.avg_cost, max_budget)
+    why_medium = readiness_messages(profile, cost_fit)
 
     return {
         "id": uni.id,
@@ -291,7 +325,8 @@ def build_university_card(uni: University, profile: Profile, category_override: 
         "cost_fit": cost_fit,
         "risk_level": risk,
         "acceptance_likelihood": acceptance,
-        "category": category
+        "category": category,
+        "why_medium": why_medium
     }
 
 
@@ -320,16 +355,10 @@ def get_recommendations(
     target = []
     safe = []
 
-    min_budget, max_budget = parse_budget_range(profile.budget_range)
-    tolerance = get_funding_tolerance(profile.funding_type)
-
     for uni in universities:
         if not country_matches(profile, uni):
             continue
         if not field_matches(profile, uni):
-            continue
-
-        if max_budget is not None and uni.avg_cost > max_budget + tolerance:
             continue
 
         card = build_university_card(uni, profile)
@@ -341,9 +370,9 @@ def get_recommendations(
             target.append(card)
 
     return {
-        "dream": dream,
+        "safe": safe,
         "target": target,
-        "safe": safe
+        "dream": dream
     }
 
 

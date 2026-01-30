@@ -146,19 +146,28 @@ export const Profile: React.FC = () => {
 
   return (
     <MainLayout title="Profile">
-      <div className="max-w-4xl mx-auto space-y-6">
+      <div className="max-w-4xl mx-auto space-y-6 px-4 sm:px-6">
         {/* Header */}
-        <div className="bg-gradient-to-br from-sand-700 to-nude-700 rounded-2xl p-8 text-white">
-          <div className="flex items-center gap-6">
-            <div className="w-20 h-20 bg-white/20 rounded-full flex items-center justify-center text-4xl font-bold">
-              {user?.name?.charAt(0)?.toUpperCase() || 'U'}
+        <div className="bg-gradient-to-br from-primary-700 to-accent-700 rounded-2xl p-6 sm:p-8 text-white">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div className="flex items-center gap-4 sm:gap-6 flex-1 min-w-0">
+              <div className="w-16 h-16 sm:w-20 sm:h-20 bg-white/20 rounded-full flex items-center justify-center text-3xl sm:text-4xl font-bold flex-shrink-0">
+                {user?.name?.charAt(0)?.toUpperCase() || 'U'}
+              </div>
+              <div className="min-w-0">
+                <h1 className="text-2xl sm:text-3xl font-display font-bold mb-1 truncate">
+                  {user?.name || 'User'}
+                </h1>
+                <p className="text-white/90 text-sm sm:text-base truncate">{user?.email}</p>
+              </div>
             </div>
-            <div>
-              <h1 className="text-3xl font-display font-bold mb-2">
-                {user?.name || 'User'}
-              </h1>
-              <p className="text-white/90">{user?.email}</p>
-            </div>
+            <Button 
+              variant="ghost"
+              onClick={() => navigate('/onboarding')}
+              className="text-white hover:bg-white/20 border border-white/30 w-full md:w-auto"
+            >
+              Edit Profile
+            </Button>
           </div>
         </div>
 
@@ -166,26 +175,17 @@ export const Profile: React.FC = () => {
         {profileSections.map((section) => (
           <Card key={section.title}>
             <CardHeader>
-              <div className="flex justify-between items-center">
-                <CardTitle>{section.title}</CardTitle>
-                <Button 
-                  variant="ghost" 
-                  size="sm"
-                  onClick={() => navigate('/onboarding')}
-                >
-                  Edit
-                </Button>
-              </div>
+              <CardTitle>{section.title}</CardTitle>
             </CardHeader>
             <CardContent>
               {section.data.length === 0 ? (
-                <p className="text-nude-600 text-center py-4">No data available</p>
+                <p className="text-neutral-600 text-center py-4">No data available</p>
               ) : (
                 <div className="grid md:grid-cols-2 gap-4">
                   {section.data.map((item) => (
                     <div key={item.label}>
-                      <p className="text-xs text-nude-600 mb-1">{item.label}</p>
-                      <p className="text-sm font-medium text-nude-900">{item.value}</p>
+                      <p className="text-xs text-neutral-600 mb-1">{item.label}</p>
+                      <p className="text-sm font-medium text-neutral-900">{item.value}</p>
                     </div>
                   ))}
                 </div>
@@ -241,12 +241,12 @@ export const Profile: React.FC = () => {
                           setPasswordData({ ...passwordData, old_password: e.target.value })
                         }
                         disabled={passwordLoading}
-                        className="w-full px-4 py-2 border border-nude-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sand-500 disabled:bg-nude-50"
+                        className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 disabled:bg-neutral-50"
                       />
                       <button
                         type="button"
                         onClick={() => setShowOldPassword(!showOldPassword)}
-                        className="absolute right-3 top-2.5 text-nude-600 hover:text-nude-900"
+                        className="absolute right-3 top-2.5 text-neutral-600 hover:text-neutral-900"
                       >
                         {showOldPassword ? '👁️' : '👁️‍🗨️'}
                       </button>
@@ -264,12 +264,12 @@ export const Profile: React.FC = () => {
                           setPasswordData({ ...passwordData, new_password: e.target.value })
                         }
                         disabled={passwordLoading}
-                        className="w-full px-4 py-2 border border-nude-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sand-500 disabled:bg-nude-50"
+                        className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 disabled:bg-neutral-50"
                       />
                       <button
                         type="button"
                         onClick={() => setShowNewPassword(!showNewPassword)}
-                        className="absolute right-3 top-2.5 text-nude-600 hover:text-nude-900"
+                        className="absolute right-3 top-2.5 text-neutral-600 hover:text-neutral-900"
                       >
                         {showNewPassword ? '👁️' : '👁️‍🗨️'}
                       </button>
@@ -277,8 +277,8 @@ export const Profile: React.FC = () => {
                     
                     {/* Password Rules */}
                     {passwordData.new_password && (
-                      <div className="bg-nude-50 p-3 rounded text-xs space-y-1">
-                        <p className="font-semibold text-nude-700">Password Requirements:</p>
+                      <div className="bg-neutral-50 p-3 rounded text-xs space-y-1">
+                        <p className="font-semibold text-neutral-700">Password Requirements:</p>
                         <div className={passwordRules.length ? 'text-green-600' : 'text-red-600'}>
                           {passwordRules.length ? '✓' : '✗'} At least 6 characters
                         </div>
@@ -306,12 +306,12 @@ export const Profile: React.FC = () => {
                           setPasswordData({ ...passwordData, confirm_password: e.target.value })
                         }
                         disabled={passwordLoading}
-                        className="w-full px-4 py-2 border border-nude-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sand-500 disabled:bg-nude-50"
+                        className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 disabled:bg-neutral-50"
                       />
                       <button
                         type="button"
                         onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                        className="absolute right-3 top-2.5 text-nude-600 hover:text-nude-900"
+                        className="absolute right-3 top-2.5 text-neutral-600 hover:text-neutral-900"
                       >
                         {showConfirmPassword ? '👁️' : '👁️‍🗨️'}
                       </button>

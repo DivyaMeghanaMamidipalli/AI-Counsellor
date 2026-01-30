@@ -19,10 +19,10 @@ export const Button: React.FC<ButtonProps> = ({
   const baseStyles = 'rounded-lg font-medium transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2';
   
   const variants = {
-    primary: 'bg-sand-700 text-white hover:bg-sand-800 shadow-soft hover:shadow-soft-lg',
-    secondary: 'bg-nude-100 text-nude-800 hover:bg-nude-200',
-    outline: 'border-2 border-sand-600 text-sand-700 hover:bg-sand-50',
-    ghost: 'text-sand-700 hover:bg-nude-100',
+    primary: 'bg-primary-600 text-white hover:bg-primary-700 shadow-md hover:shadow-lg',
+    secondary: 'bg-neutral-100 text-neutral-800 hover:bg-neutral-200',
+    outline: 'border-2 border-primary-600 text-primary-700 hover:bg-primary-50',
+    ghost: 'text-primary-700 hover:bg-neutral-100',
   };
 
   const sizes = {

@@ -11,6 +11,7 @@ export interface University {
   cost_fit?: string | null;
   risk_level?: string | null;
   acceptance_likelihood?: string | null;
+  why_medium?: string[] | null;
 }
 
 export interface ShortlistRequest {

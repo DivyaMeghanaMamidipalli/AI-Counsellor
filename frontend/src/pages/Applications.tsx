@@ -6,18 +6,33 @@ import { Button } from '../components/common/Button';
 import { LoadingSpinner } from '../components/common/Loading';
 import { useTasksStore } from '../store/tasksStore';
 import { useUniversitiesStore } from '../store/universitiesStore';
+import { useAuth } from '../hooks/useAuth';
 import { tasksApi } from '../api/tasks';
 
 export const Applications: React.FC = () => {
   const { tasks, isLoading, fetchTasks, updateTask, createTask, generateDefaultTasks } = useTasksStore();
   const { locked: lockedUniversities, fetchAll: fetchUniversities } = useUniversitiesStore();
+  const { user } = useAuth();
   const [filter, setFilter] = useState<'all' | 'pending' | 'in_progress' | 'completed'>('all');
   const [showAddTask, setShowAddTask] = useState(false);
   const [newTaskTitle, setNewTaskTitle] = useState('');
+  const [lastUserId, setLastUserId] = useState<number | null>(null);
 
   useEffect(() => {
-    fetchTasks(); // Will use cache if available
-    fetchUniversities(); // Will use cache if available
+    // Force fresh fetch when user changes (new login)
+    if (user && user.id !== lastUserId) {
+      setLastUserId(user.id);
+      fetchTasks(true); // Force refresh
+      fetchUniversities(true); // Force refresh
+    }
+  }, [user?.id, lastUserId]);
+
+  useEffect(() => {
+    // Only fetch if no tasks loaded yet
+    if (tasks.length === 0) {
+      fetchTasks();
+      fetchUniversities();
+    }
   }, []);
 
   const handleTaskToggle = async (taskId: number, currentStatus: string) => {
@@ -85,10 +100,10 @@ export const Applications: React.FC = () => {
       <MainLayout title="Applications">
         <div className="text-center py-16">
           <div className="text-6xl mb-4">🔒</div>
-          <h2 className="text-2xl font-bold text-nude-900 mb-3">
+          <h2 className="text-2xl font-bold text-neutral-900 mb-3">
             Lock a University First
           </h2>
-          <p className="text-nude-600 mb-6">
+          <p className="text-neutral-600 mb-6">
             You need to lock at least one university before accessing application guidance
           </p>
           <Button variant="primary" onClick={() => window.location.href = '/universities'}>
@@ -112,10 +127,10 @@ export const Applications: React.FC = () => {
               {lockedUniversities.map((uni) => (
                 <div
                   key={uni.id}
-                  className="p-4 bg-sand-50 rounded-lg border border-sand-200"
+                  className="p-4 bg-primary-50 rounded-lg border border-primary-200"
                 >
-                  <h3 className="font-semibold text-nude-900 mb-1">{uni.name}</h3>
-                  <p className="text-sm text-nude-600">{uni.country}</p>
+                  <h3 className="font-semibold text-neutral-900 mb-1">{uni.name}</h3>
+                  <p className="text-sm text-neutral-600">{uni.country}</p>
                   <div className="mt-2">
                     <Badge variant="warning" size="sm">
                       🔒 Locked
@@ -130,19 +145,19 @@ export const Applications: React.FC = () => {
         {/* Task Stats */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <Card padding="md">
-            <p className="text-nude-600 text-sm mb-1">Total Tasks</p>
-            <p className="text-2xl font-bold text-nude-900">{taskStats.total}</p>
+            <p className="text-neutral-600 text-sm mb-1">Total Tasks</p>
+            <p className="text-2xl font-bold text-neutral-900">{taskStats.total}</p>
           </Card>
           <Card padding="md">
-            <p className="text-nude-600 text-sm mb-1">Pending</p>
-            <p className="text-2xl font-bold text-cream-800">{taskStats.pending}</p>
+            <p className="text-neutral-600 text-sm mb-1">Pending</p>
+            <p className="text-2xl font-bold text-accent-800">{taskStats.pending}</p>
           </Card>
           <Card padding="md">
-            <p className="text-nude-600 text-sm mb-1">In Progress</p>
-            <p className="text-2xl font-bold text-sand-800">{taskStats.in_progress}</p>
+            <p className="text-neutral-600 text-sm mb-1">In Progress</p>
+            <p className="text-2xl font-bold text-primary-800">{taskStats.in_progress}</p>
           </Card>
           <Card padding="md">
-            <p className="text-nude-600 text-sm mb-1">Completed</p>
+            <p className="text-neutral-600 text-sm mb-1">Completed</p>
             <p className="text-2xl font-bold text-green-800">{taskStats.completed}</p>
           </Card>
         </div>
@@ -174,13 +189,13 @@ export const Applications: React.FC = () => {
           </CardHeader>
           <CardContent>
             {showAddTask && (
-              <div className="mb-4 p-4 bg-sand-50 rounded-lg border border-sand-200">
+              <div className="mb-4 p-4 bg-primary-50 rounded-lg border border-primary-200">
                 <input
                   type="text"
                   value={newTaskTitle}
                   onChange={(e) => setNewTaskTitle(e.target.value)}
                   placeholder="Enter task title..."
-                  className="w-full px-3 py-2 border border-nude-300 rounded-lg mb-3"
+                  className="w-full px-3 py-2 border border-neutral-300 rounded-lg mb-3"
                   onKeyPress={(e) => {
                     if (e.key === 'Enter') handleAddCustomTask();
                   }}
@@ -209,7 +224,7 @@ export const Applications: React.FC = () => {
             
             {filteredTasks.length === 0 ? (
               <div className="text-center py-8">
-                <p className="text-nude-600 mb-4">No tasks found</p>
+                <p className="text-neutral-600 mb-4">No tasks found</p>
                 {tasks.length === 0 && (
                   <Button
                     variant="primary"
@@ -224,13 +239,13 @@ export const Applications: React.FC = () => {
                 {filteredTasks.map((task) => (
                   <div
                     key={task.id}
-                    className="flex items-start gap-4 p-4 rounded-lg border border-nude-200 hover:bg-nude-50 transition-colors"
+                    className="flex items-start gap-4 p-4 rounded-lg border border-neutral-200 hover:bg-neutral-50 transition-colors"
                   >
                     <input
                       type="checkbox"
                       checked={task.status === 'completed'}
                       onChange={() => handleTaskToggle(task.id, task.status)}
-                      className="mt-1 w-5 h-5 rounded border-nude-300 text-sand-700"
+                      className="mt-1 w-5 h-5 rounded border-neutral-300 text-primary-600"
                     />
                     
                     <div className="flex-1">
@@ -238,8 +253,8 @@ export const Applications: React.FC = () => {
                         <h4
                           className={`font-medium ${
                             task.status === 'completed'
-                              ? 'text-nude-500 line-through'
-                              : 'text-nude-900'
+                              ? 'text-neutral-500 line-through'
+                              : 'text-neutral-900'
                           }`}
                         >
                           {task.title}
@@ -267,7 +282,7 @@ export const Applications: React.FC = () => {
                       </div>
                       
                       {task.stage_name && (
-                        <div className="text-xs text-nude-500">
+                        <div className="text-xs text-neutral-500">
                           Stage: {task.stage_name}
                         </div>
                       )}
@@ -296,9 +311,9 @@ export const Applications: React.FC = () => {
               ].map((doc) => (
                 <div
                   key={doc.name}
-                  className="flex items-center justify-between p-3 bg-nude-50 rounded-lg"
+                  className="flex items-center justify-between p-3 bg-neutral-50 rounded-lg"
                 >
-                  <span className="text-sm text-nude-900">{doc.name}</span>
+                  <span className="text-sm text-neutral-900">{doc.name}</span>
                   <Badge
                     variant={
                       doc.status === 'completed'

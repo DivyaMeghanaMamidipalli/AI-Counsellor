@@ -38,18 +38,18 @@ export const ActionPanel: React.FC<ActionPanelProps> = ({ actions, onUndo }) => 
 
   if (actions.length === 0) {
     return (
-      <div className="bg-white rounded-xl shadow-soft border border-nude-100 p-6">
-        <h3 className="text-lg font-semibold text-nude-900 mb-4">Recent Actions</h3>
+      <div className="bg-white rounded-xl shadow-md border border-neutral-100 p-6">
+        <h3 className="text-lg font-semibold text-neutral-900 mb-4">Recent Actions</h3>
         <div className="text-center py-8">
-          <p className="text-nude-600">No recent actions</p>
+          <p className="text-neutral-600">No recent actions</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="bg-white rounded-xl shadow-soft border border-nude-100 p-6">
-      <h3 className="text-lg font-semibold text-nude-900 mb-4">Recent Actions</h3>
+    <div className="bg-white rounded-xl shadow-md border border-neutral-100 p-6">
+      <h3 className="text-lg font-semibold text-neutral-900 mb-4">Recent Actions</h3>
       
       <div className="space-y-3">
         {actions.map((action) => {
@@ -57,13 +57,13 @@ export const ActionPanel: React.FC<ActionPanelProps> = ({ actions, onUndo }) => 
           return (
             <div
               key={action.id}
-              className="flex items-start gap-3 p-3 rounded-lg hover:bg-nude-50 transition-colors"
+              className="flex items-start gap-3 p-3 rounded-lg hover:bg-neutral-50 transition-colors"
             >
               <span className="text-2xl">{getActionIcon(action.type)}</span>
               
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-1">
-                  <h4 className="text-sm font-medium text-nude-900 truncate">
+                  <h4 className="text-sm font-medium text-neutral-900 truncate">
                     {action.title}
                   </h4>
                   <Badge variant={badge.variant} size="sm">
@@ -71,11 +71,11 @@ export const ActionPanel: React.FC<ActionPanelProps> = ({ actions, onUndo }) => 
                   </Badge>
                 </div>
                 
-                <p className="text-xs text-nude-600 line-clamp-2">
+                <p className="text-xs text-neutral-600 line-clamp-2">
                   {action.description}
                 </p>
                 
-                <p className="text-xs text-nude-500 mt-1">
+                <p className="text-xs text-neutral-500 mt-1">
                   {action.timestamp.toLocaleString()}
                 </p>
               </div>
@@ -83,7 +83,7 @@ export const ActionPanel: React.FC<ActionPanelProps> = ({ actions, onUndo }) => 
               {onUndo && (
                 <button
                   onClick={() => onUndo(action.id)}
-                  className="text-xs text-sand-700 hover:text-sand-800 font-medium"
+                  className="text-xs text-primary-700 hover:text-primary-800 font-medium"
                 >
                   Undo
                 </button>

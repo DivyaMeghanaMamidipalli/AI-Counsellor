@@ -11,7 +11,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children, title }) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   return (
-    <div className="flex h-screen bg-nude-50">
+    <div className="flex h-screen bg-neutral-50">
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       
       <div className="flex-1 flex flex-col overflow-hidden">

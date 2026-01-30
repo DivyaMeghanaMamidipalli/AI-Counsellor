@@ -24,7 +24,7 @@ export const Input: React.FC<InputProps> = ({
   return (
     <div className="w-full">
       {label && (
-        <label className="block text-sm font-medium text-nude-800 mb-2">
+        <label className="block text-sm font-medium text-neutral-800 mb-2">
           {label}
         </label>
       )}
@@ -40,7 +40,7 @@ export const Input: React.FC<InputProps> = ({
           <button
             type="button"
             onClick={() => setShowPassword(!showPassword)}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-nude-600 hover:text-nude-800 transition-colors"
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-600 hover:text-neutral-800 transition-colors"
             aria-label={showPassword ? 'Hide password' : 'Show password'}
           >
             {showPassword ? (
@@ -73,7 +73,7 @@ export const Input: React.FC<InputProps> = ({
       </div>
       {error && <p className="mt-1 text-sm text-red-600">{error}</p>}
       {helperText && !error && (
-        <p className="mt-1 text-sm text-nude-600">{helperText}</p>
+        <p className="mt-1 text-sm text-neutral-600">{helperText}</p>
       )}
     </div>
   );
@@ -95,7 +95,7 @@ export const Select: React.FC<SelectProps> = ({
   return (
     <div className="w-full">
       {label && (
-        <label className="block text-sm font-medium text-nude-800 mb-2">
+        <label className="block text-sm font-medium text-neutral-800 mb-2">
           {label}
         </label>
       )}
@@ -128,7 +128,7 @@ export const Textarea: React.FC<TextareaProps> = ({
   return (
     <div className="w-full">
       {label && (
-        <label className="block text-sm font-medium text-nude-800 mb-2">
+        <label className="block text-sm font-medium text-neutral-800 mb-2">
           {label}
         </label>
       )}

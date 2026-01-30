@@ -18,7 +18,7 @@ export const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({
   return (
     <div className="flex flex-col items-center justify-center gap-3">
       <svg
-        className={`animate-spin ${sizes[size]} text-sand-700`}
+        className={`animate-spin ${sizes[size]} text-primary-600`}
         viewBox="0 0 24 24"
       >
         <circle
@@ -36,14 +36,14 @@ export const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({
           d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
         />
       </svg>
-      {text && <p className="text-nude-700 text-sm">{text}</p>}
+      {text && <p className="text-neutral-700 text-sm">{text}</p>}
     </div>
   );
 };
 
 export const PageLoader: React.FC = () => {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-nude-50">
+    <div className="min-h-screen flex items-center justify-center bg-neutral-50">
       <LoadingSpinner size="lg" text="Loading..." />
     </div>
   );

@@ -45,6 +45,7 @@ def _build_prompt(
     locked_universities: List[Dict[str, Any]],
     shortlisted_universities: List[Dict[str, Any]],
     tasks: List[Dict[str, Any]],
+    include_tasks: bool = False,
 ) -> str:
     profile_details = f"""YOUR PROFILE ANALYSIS:
 Education Level: {profile.education_level}
@@ -82,6 +83,8 @@ CRITICAL RULES:
 - If you say you locked/unlocked/shortlisted something, you MUST include the matching action in the actions array
 - ONLY include recommendations when user EXPLICITLY asks for university recommendations or profile analysis
 - For general questions, application help, or task-related queries, return empty recommendations {{}}
+- NEVER include action execution status messages in your explanation (like "EXECUTED:", "SKIPPED:", "Task created", etc.)
+- Let the frontend handle displaying action results - your explanation should only contain conversational content for the user
 
 FOR PROFILE ANALYSIS REQUESTS ONLY:
 - Return the top 3-5 universities from each category (Dream/Target/Safe)
@@ -134,10 +137,20 @@ WHEN USER ASKS TO UNLOCK A UNIVERSITY:
 - Treat phrases like "unlock", "remove lock", "remove from locked", "undo lock" as unlock requests
 - Unlocking removes the lock, returning it to shortlisted status
 
+WHEN USER ASKS TO REMOVE A UNIVERSITY FROM SHORTLIST:
+- Detect removal requests: "remove", "delete", "remove from shortlist", "take off", "unshortlist"
+- Do NOT confuse removal with unlocking - removal deletes it completely
+- Find the university in "Your Shortlisted Universities (not yet locked)" list by name
+- Extract the university_id from the matched entry
+- Return the remove action with type="remove" and the correct university_id
+- If university is locked, tell user: "I cannot remove [University Name] because it's locked. Please unlock it first, then I can remove it."
+- If university is not shortlisted, tell user: "[University Name] is not in your shortlist."
+
 Allowed actions:
 - shortlist (requires university_id and category)
 - lock (requires university_id) - Use this when user wants to lock a shortlisted university
 - unlock (requires university_id) - Use this when user wants to unlock a locked university
+- remove (requires university_id) - Use this when user wants to remove a university from shortlist
 - create_task (requires title, optional stage)
 - update_task (requires task_id and status)
 - generate_tasks (no fields)
@@ -154,10 +167,10 @@ Your Locked Universities:
 
 Your Shortlisted Universities (not yet locked):
 {json.dumps(shortlisted_universities)}
-
+""" + (f"""
 Your Current Tasks:
 {json.dumps(tasks)}
-
+""" if include_tasks else "") + f"""
 Your Question:
 {user_message}
 
@@ -296,11 +309,16 @@ def _execute_action(
 
         if not shortlist:
             return ActionResult(type=action_type, status="failed", message="University not shortlisted", university_id=university_id)
+        
+        # Refresh from DB to get latest state (in case it was modified elsewhere)
+        db.refresh(shortlist)
+        
         if shortlist.locked:
             return ActionResult(type=action_type, status="skipped", message="University already locked", university_id=university_id)
 
         shortlist.locked = True
         db.commit()
+        db.refresh(shortlist)
         update_user_stage(db, current_user.id)
         return ActionResult(type=action_type, status="executed", message="University locked", university_id=university_id)
 
@@ -316,13 +334,39 @@ def _execute_action(
 
         if not shortlist:
             return ActionResult(type=action_type, status="failed", message="University not found", university_id=university_id)
+        
+        # Refresh from DB to get latest state (in case it was modified elsewhere)
+        db.refresh(shortlist)
+        
         if not shortlist.locked:
             return ActionResult(type=action_type, status="skipped", message="University is not locked", university_id=university_id)
 
         shortlist.locked = False
         db.commit()
+        db.refresh(shortlist)
         update_user_stage(db, current_user.id)
         return ActionResult(type=action_type, status="executed", message="University unlocked", university_id=university_id)
+
+    if action_type == "remove":
+        university_id = action.get("university_id")
+        if not university_id:
+            return ActionResult(type=action_type, status="failed", message="Missing university_id")
+
+        shortlist = db.query(Shortlist).filter(
+            Shortlist.user_id == current_user.id,
+            Shortlist.university_id == university_id
+        ).first()
+
+        if not shortlist:
+            return ActionResult(type=action_type, status="failed", message="University not in shortlist", university_id=university_id)
+        
+        if shortlist.locked:
+            return ActionResult(type=action_type, status="failed", message="Cannot remove locked university. Unlock it first.", university_id=university_id)
+
+        db.delete(shortlist)
+        db.commit()
+        update_user_stage(db, current_user.id)
+        return ActionResult(type=action_type, status="executed", message="University removed from shortlist", university_id=university_id)
 
     if action_type == "create_task":
         title = action.get("title")
@@ -381,6 +425,14 @@ def counsellor_chat(
     shortlist_snapshot = _get_shortlist_snapshot(db, current_user)
     tasks_snapshot = _get_tasks_snapshot(db, current_user)
 
+    # Detect if user is asking about applications or tasks
+    user_message_lower = request.message.lower()
+    keywords_for_tasks = ["application", "task", "deadline", "sop", "lor", "ielts", "gre", "essay", "document", "prepare", "checklist", "next step"]
+    include_tasks = any(keyword in user_message_lower for keyword in keywords_for_tasks)
+
+    # Only pass tasks if user is asking about applications/tasks
+    tasks_to_include = tasks_snapshot if include_tasks else []
+
     prompt = _build_prompt(
         request.message,
         profile,
@@ -388,7 +440,8 @@ def counsellor_chat(
         recommendations,
         shortlist_snapshot["locked"],
         shortlist_snapshot["shortlisted"],
-        tasks_snapshot,
+        tasks_to_include,
+        include_tasks=include_tasks,
     )
     client = _configure_groq_client()
 

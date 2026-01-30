@@ -203,30 +203,30 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ onActionExecute }) => {
   };
 
   return (
-    <div className="flex flex-col h-full bg-white rounded-xl shadow-soft border border-nude-100">
+    <div className="flex flex-col h-full bg-white rounded-xl shadow-md border border-neutral-100">
       {/* Chat Header */}
-      <div className="flex items-center gap-3 p-4 border-b border-nude-200">
-        <div className="w-10 h-10 bg-gradient-to-br from-sand-600 to-nude-600 rounded-full flex items-center justify-center text-white text-xl">
+      <div className="flex items-center gap-2 md:gap-3 p-3 md:p-4 border-b border-neutral-200">
+        <div className="w-8 h-8 md:w-10 md:h-10 bg-gradient-to-br from-primary-600 to-accent-600 rounded-full flex items-center justify-center text-white text-lg md:text-xl flex-shrink-0">
           🤖
         </div>
-        <div>
-          <h3 className="font-semibold text-nude-900">AI Counsellor</h3>
-          <p className="text-xs text-nude-600">Online • Ready to help</p>
+        <div className="min-w-0">
+          <h3 className="font-semibold text-neutral-900 text-sm md:text-base">AI Counsellor</h3>
+          <p className="text-xs text-neutral-600">Online • Ready to help</p>
         </div>
       </div>
 
       {/* Messages Area */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+      <div className="flex-1 overflow-y-auto p-3 md:p-4 space-y-3 md:space-y-4">
         {messages.map((message) => (
           <div
             key={message.id}
             className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
           >
             <div
-              className={`max-w-[80%] rounded-2xl px-4 py-3 ${
+              className={`max-w-[85%] sm:max-w-[75%] md:max-w-[70%] rounded-2xl px-3 md:px-4 py-2 md:py-3 ${
                 message.role === 'user'
-                  ? 'bg-sand-700 text-white'
-                  : 'bg-nude-100 text-nude-900'
+                  ? 'bg-primary-600 text-white'
+                  : 'bg-neutral-100 text-neutral-900'
               }`}
             >
               <p className="text-sm leading-relaxed whitespace-pre-wrap">
@@ -239,11 +239,11 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ onActionExecute }) => {
                     message.recommendations.target?.length > 0 ||
                     message.recommendations.safe?.length > 0) ? (
                     <>
-                      <div className="text-xs font-semibold text-nude-700">Recommended universities</div>
+                      <div className="text-xs font-semibold text-neutral-700">Recommended universities</div>
                       {message.recommendations.dream?.length > 0 && (
                         <div>
-                          <div className="text-[11px] text-nude-600 mb-1">🌟 Dream</div>
-                          <ul className="text-xs text-nude-800 space-y-1">
+                          <div className="text-[11px] text-neutral-600 mb-1">🌟 Dream</div>
+                          <ul className="text-xs text-neutral-800 space-y-1">
                             {message.recommendations.dream.map((uni) => (
                               <li key={`dream-${uni.id}`}>
                                 {uni.name}
@@ -255,8 +255,8 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ onActionExecute }) => {
                       )}
                       {message.recommendations.target?.length > 0 && (
                         <div>
-                          <div className="text-[11px] text-nude-600 mb-1">🎯 Target</div>
-                          <ul className="text-xs text-nude-800 space-y-1">
+                          <div className="text-[11px] text-neutral-600 mb-1">🎯 Target</div>
+                          <ul className="text-xs text-neutral-800 space-y-1">
                             {message.recommendations.target.map((uni) => (
                               <li key={`target-${uni.id}`}>
                                 {uni.name}
@@ -268,8 +268,8 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ onActionExecute }) => {
                       )}
                       {message.recommendations.safe?.length > 0 && (
                         <div>
-                          <div className="text-[11px] text-nude-600 mb-1">✓ Safe</div>
-                          <ul className="text-xs text-nude-800 space-y-1">
+                          <div className="text-[11px] text-neutral-600 mb-1">✓ Safe</div>
+                          <ul className="text-xs text-neutral-800 space-y-1">
                             {message.recommendations.safe.map((uni) => (
                               <li key={`safe-${uni.id}`}>
                                 {uni.name}
@@ -281,15 +281,15 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ onActionExecute }) => {
                       )}
                     </>
                   ) : (
-                    <div className="text-xs text-nude-600">No recommendations returned.</div>
+                    <div className="text-xs text-neutral-600">No recommendations returned.</div>
                   )}
                 </div>
               )}
 
               {message.actions && message.actions.some((action) => action.type === 'shortlist') && (
                 <div className="mt-3">
-                  <div className="text-xs font-semibold text-nude-700">Shortlisted</div>
-                  <ul className="text-xs text-nude-800 space-y-1 mt-1">
+                  <div className="text-xs font-semibold text-neutral-700">Shortlisted</div>
+                  <ul className="text-xs text-neutral-800 space-y-1 mt-1">
                     {message.actions
                       .filter((action) => action.type === 'shortlist')
                       .map((action, idx) => (
@@ -303,8 +303,8 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ onActionExecute }) => {
 
               {message.lockedUniversities && message.lockedUniversities.length > 0 && (
                 <div className="mt-3">
-                  <div className="text-xs font-semibold text-nude-700">Locked universities</div>
-                  <ul className="text-xs text-nude-800 space-y-1 mt-1">
+                  <div className="text-xs font-semibold text-neutral-700">Locked universities</div>
+                  <ul className="text-xs text-neutral-800 space-y-1 mt-1">
                     {message.lockedUniversities.map((uni) => (
                       <li key={`locked-${uni.id}`}>
                         {uni.name}
@@ -317,8 +317,8 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ onActionExecute }) => {
 
               {message.shortlistedUniversities && message.shortlistedUniversities.length > 0 && (
                 <div className="mt-3">
-                  <div className="text-xs font-semibold text-nude-700">Shortlisted (not locked)</div>
-                  <ul className="text-xs text-nude-800 space-y-1 mt-1">
+                  <div className="text-xs font-semibold text-neutral-700">Shortlisted (not locked)</div>
+                  <ul className="text-xs text-neutral-800 space-y-1 mt-1">
                     {message.shortlistedUniversities.map((uni) => (
                       <li key={`short-${uni.id}`}>
                         {uni.name}
@@ -331,8 +331,8 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ onActionExecute }) => {
 
               {message.tasks && message.tasks.length > 0 && (
                 <div className="mt-3">
-                  <div className="text-xs font-semibold text-nude-700">Tasks</div>
-                  <ul className="text-xs text-nude-800 space-y-1 mt-1">
+                  <div className="text-xs font-semibold text-neutral-700">Tasks</div>
+                  <ul className="text-xs text-neutral-800 space-y-1 mt-1">
                     {message.tasks.map((task) => (
                       <li key={`task-${task.id}`}>
                         {task.title} — {task.status.replace('_', ' ')}
@@ -348,7 +348,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ onActionExecute }) => {
                     action.status ? (
                       <div
                         key={idx}
-                        className="w-full px-3 py-2 text-xs bg-nude-50 text-nude-700 rounded-lg border border-nude-200"
+                        className="w-full px-3 py-2 text-xs bg-neutral-50 text-neutral-700 rounded-lg border border-neutral-200"
                       >
                         {action.label}
                       </div>
@@ -356,7 +356,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ onActionExecute }) => {
                       <button
                         key={idx}
                         onClick={() => onActionExecute?.(action)}
-                        className="w-full px-3 py-2 text-sm bg-white text-sand-700 rounded-lg hover:bg-sand-50 transition-colors border border-sand-300"
+                        className="w-full px-3 py-2 text-sm bg-white text-primary-700 rounded-lg hover:bg-primary-50 transition-colors border border-primary-300"
                       >
                         {action.label}
                       </button>
@@ -366,22 +366,22 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ onActionExecute }) => {
               )}
 
               {(message.recommendations || (message.actions && message.actions.some((action) => action.type === 'shortlist')) || message.tasks || message.lockedUniversities || message.shortlistedUniversities) && (
-                <div className="mt-3 flex flex-wrap gap-2">
+                <div className="mt-2 md:mt-3 flex flex-col sm:flex-row gap-1.5 md:gap-2">
                   <Link
                     to="/universities?tab=recommendations"
-                    className="px-3 py-1.5 text-xs bg-white text-sand-700 rounded-lg hover:bg-sand-50 transition-colors border border-sand-300"
+                    className="px-2 md:px-3 py-1 md:py-1.5 text-[11px] md:text-xs bg-white text-primary-700 rounded-lg hover:bg-primary-50 transition-colors border border-primary-300 text-center"
                   >
                     Open recommended universities
                   </Link>
                   <Link
                     to="/universities?tab=shortlisted"
-                    className="px-3 py-1.5 text-xs bg-white text-sand-700 rounded-lg hover:bg-sand-50 transition-colors border border-sand-300"
+                    className="px-2 md:px-3 py-1 md:py-1.5 text-[11px] md:text-xs bg-white text-primary-700 rounded-lg hover:bg-primary-50 transition-colors border border-primary-300 text-center"
                   >
                     Open shortlisted universities
                   </Link>
                   <Link
                     to="/applications"
-                    className="px-3 py-1.5 text-xs bg-white text-sand-700 rounded-lg hover:bg-sand-50 transition-colors border border-sand-300"
+                    className="px-2 md:px-3 py-1 md:py-1.5 text-[11px] md:text-xs bg-white text-primary-700 rounded-lg hover:bg-primary-50 transition-colors border border-primary-300 text-center"
                   >
                     Open application tasks
                   </Link>
@@ -400,11 +400,11 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ onActionExecute }) => {
         
         {isLoading && (
           <div className="flex justify-start">
-            <div className="bg-nude-100 rounded-2xl px-4 py-3">
+            <div className="bg-neutral-100 rounded-2xl px-4 py-3">
               <div className="flex gap-1">
-                <span className="w-2 h-2 bg-nude-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></span>
-                <span className="w-2 h-2 bg-nude-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></span>
-                <span className="w-2 h-2 bg-nude-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></span>
+                <span className="w-2 h-2 bg-neutral-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></span>
+                <span className="w-2 h-2 bg-neutral-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></span>
+                <span className="w-2 h-2 bg-neutral-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></span>
               </div>
             </div>
           </div>
@@ -413,24 +413,24 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ onActionExecute }) => {
       </div>
 
       {/* Input Area */}
-      <div className="p-4 border-t border-nude-200">
+      <div className="p-3 md:p-4 border-t border-neutral-200 space-y-3">
         <div className="flex gap-2">
           <textarea
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyPress={handleKeyPress}
-            placeholder="Ask me anything about your study abroad journey..."
-            className="flex-1 px-4 py-3 rounded-lg border-2 border-nude-200 focus:border-sand-500 focus:outline-none resize-none"
+            placeholder="Ask me anything..."
+            className="flex-1 px-3 md:px-4 py-2 md:py-3 text-sm md:text-base rounded-lg border-2 border-neutral-200 focus:border-primary-500 focus:outline-none resize-none"
             rows={1}
           />
           <Button
             onClick={handleSend}
             disabled={!input.trim() || isLoading}
             variant="primary"
-            className="px-6"
+            className="px-3 md:px-6 flex-shrink-0"
           >
             <svg
-              className="w-5 h-5"
+              className="w-4 h-4 md:w-5 md:h-5"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -445,23 +445,23 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ onActionExecute }) => {
           </Button>
         </div>
         
-        <div className="flex gap-2 mt-3">
-            <button
-              onClick={() => sendMessage('Recommend universities')}
-              className="px-3 py-1.5 text-xs bg-nude-100 text-nude-700 rounded-full hover:bg-nude-200 transition-colors"
-            >
+        <div className="flex gap-2 flex-wrap">
+          <button
+            onClick={() => sendMessage('Recommend universities')}
+            className="px-2 md:px-3 py-1.5 text-xs bg-neutral-100 text-neutral-700 rounded-full hover:bg-neutral-200 transition-colors whitespace-nowrap"
+          >
             Recommend universities
           </button>
-            <button
-              onClick={() => sendMessage('Profile analysis')}
-              className="px-3 py-1.5 text-xs bg-nude-100 text-nude-700 rounded-full hover:bg-nude-200 transition-colors"
-            >
+          <button
+            onClick={() => sendMessage('Profile analysis')}
+            className="px-2 md:px-3 py-1.5 text-xs bg-neutral-100 text-neutral-700 rounded-full hover:bg-neutral-200 transition-colors whitespace-nowrap"
+          >
             Profile analysis
           </button>
-            <button
-              onClick={() => sendMessage('Application help')}
-              className="px-3 py-1.5 text-xs bg-nude-100 text-nude-700 rounded-full hover:bg-nude-200 transition-colors"
-            >
+          <button
+            onClick={() => sendMessage('Application help')}
+            className="px-2 md:px-3 py-1.5 text-xs bg-neutral-100 text-neutral-700 rounded-full hover:bg-neutral-200 transition-colors whitespace-nowrap"
+          >
             Application help
           </button>
         </div>

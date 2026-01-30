@@ -12,7 +12,7 @@ from dotenv import load_dotenv
 
 from .database import get_db
 from .models import User
-from .schemas import SignupRequest, LoginRequest, TokenResponse, ChangePasswordRequest
+from .schemas import SignupRequest, LoginRequest, TokenResponse, ChangePasswordRequest, ResetPasswordRequest
 
 load_dotenv()
 
@@ -216,7 +216,33 @@ def change_password(
     current_user.password = hash_password(request.new_password)
     db.add(current_user)
     db.commit()
+    db.refresh(current_user)
     
     return {
         "message": "Password changed successfully"
+    }
+
+
+@router.post("/reset-password")
+def reset_password(
+    request: ResetPasswordRequest,
+    db: Session = Depends(get_db)
+):
+    """
+    Reset password by email (basic flow)
+    """
+    user = db.query(User).filter(User.email == request.email).first()
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found"
+        )
+
+    user.password = hash_password(request.new_password)
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+
+    return {
+        "message": "Password reset successfully"
     }
