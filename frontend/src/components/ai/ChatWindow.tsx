@@ -1,6 +1,9 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
+import { Link } from 'react-router-dom';
 import { Button } from '../common/Button';
 import { counsellorApi } from '../../api/counsellor';
+import { useUniversitiesStore } from '../../store/universitiesStore';
+import { useAuthStore } from '../../store/authStore';
 
 interface Message {
   id: string;
@@ -8,10 +11,31 @@ interface Message {
   content: string;
   timestamp: Date;
   actions?: ActionSuggestion[];
+  recommendations?: {
+    dream: number[];
+    target: number[];
+    safe: number[];
+  };
+  tasks?: Array<{
+    id: number;
+    title: string;
+    stage?: string;
+    status: string;
+  }>;
+  lockedUniversities?: Array<{
+    id: number;
+    name: string;
+    category?: string;
+  }>;
+  shortlistedUniversities?: Array<{
+    id: number;
+    name: string;
+    category?: string;
+  }>;
 }
 
 interface ActionSuggestion {
-  type: 'shortlist' | 'lock' | 'create_task';
+  type: 'shortlist' | 'lock' | 'create_task' | 'update_task' | 'generate_tasks';
   label: string;
   data: any;
   status?: 'executed' | 'skipped' | 'failed' | string;
@@ -22,14 +46,19 @@ interface ChatWindowProps {
 }
 
 export const ChatWindow: React.FC<ChatWindowProps> = ({ onActionExecute }) => {
-  const [messages, setMessages] = useState<Message[]>([
+  const userId = useAuthStore((state) => state.user?.id || 'guest');
+  const storageKey = useMemo(() => `ai-counsellor-chat:${userId}`, [userId]);
+  const { recommendations, shortlisted, locked, fetchAll } = useUniversitiesStore();
+  const defaultMessages = useMemo<Message[]>(() => ([
     {
       id: '1',
       role: 'assistant',
       content: "Hello! I'm your AI Counsellor. I'm here to guide you through your study abroad journey. How can I help you today?",
       timestamp: new Date(),
     },
-  ]);
+  ]), []);
+  const [messages, setMessages] = useState<Message[]>(defaultMessages);
+  const [isHydrated, setIsHydrated] = useState(false);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -42,13 +71,71 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ onActionExecute }) => {
     scrollToBottom();
   }, [messages]);
 
-  const handleSend = async () => {
-    if (!input.trim() || isLoading) return;
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem(storageKey);
+      if (!stored) {
+        setMessages(defaultMessages);
+        setIsHydrated(true);
+        return;
+      }
+      const parsed = JSON.parse(stored) as Array<Omit<Message, 'timestamp'> & { timestamp: string }>;
+      if (parsed.length > 0) {
+        setMessages(parsed.map((item) => ({
+          ...item,
+          timestamp: new Date(item.timestamp),
+        })));
+      } else {
+        setMessages(defaultMessages);
+      }
+    } catch {
+      setMessages(defaultMessages);
+    } finally {
+      setIsHydrated(true);
+    }
+  }, [storageKey, defaultMessages]);
+
+  useEffect(() => {
+    if (!isHydrated) {
+      return;
+    }
+    try {
+      const serialized = messages.map((message) => ({
+        ...message,
+        timestamp: message.timestamp.toISOString(),
+      }));
+      localStorage.setItem(storageKey, JSON.stringify(serialized));
+    } catch {
+      // ignore storage errors
+    }
+  }, [messages, isHydrated, storageKey]);
+
+  useEffect(() => {
+    fetchAll();
+  }, [fetchAll]);
+
+  const allUniversities = useMemo(() => (
+    [
+      ...(recommendations?.dream || []),
+      ...(recommendations?.target || []),
+      ...(recommendations?.safe || []),
+      ...shortlisted,
+      ...locked,
+    ]
+  ), [recommendations, shortlisted, locked]);
+
+  const getUniversityName = (id: number) => {
+    const uni = allUniversities.find((item) => item.id === id);
+    return uni?.name || `University #${id}`;
+  };
+
+  const sendMessage = async (text: string) => {
+    if (!text.trim() || isLoading) return;
 
     const userMessage: Message = {
       id: Date.now().toString(),
       role: 'user',
-      content: input,
+      content: text,
       timestamp: new Date(),
     };
 
@@ -63,6 +150,10 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ onActionExecute }) => {
         role: 'assistant',
         content: response.reply || 'Here is what I recommend based on your profile.',
         timestamp: new Date(),
+        recommendations: response.recommendations,
+        tasks: response.tasks,
+        lockedUniversities: response.locked_universities,
+        shortlistedUniversities: response.shortlisted_universities,
         actions: (response.actions || []).map((action) => ({
           type: (action.type as ActionSuggestion['type']) || 'create_task',
           label: `${(action.status || 'executed').toUpperCase()}: ${action.message}`,
@@ -82,6 +173,10 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ onActionExecute }) => {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleSend = async () => {
+    await sendMessage(input);
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -121,6 +216,106 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ onActionExecute }) => {
               <p className="text-sm leading-relaxed whitespace-pre-wrap">
                 {message.content}
               </p>
+
+              {message.recommendations && (
+                <div className="mt-3 space-y-3">
+                  {(message.recommendations.dream?.length > 0 ||
+                    message.recommendations.target?.length > 0 ||
+                    message.recommendations.safe?.length > 0) ? (
+                    <>
+                      <div className="text-xs font-semibold text-nude-700">Recommended universities</div>
+                      {message.recommendations.dream?.length > 0 && (
+                        <div>
+                          <div className="text-[11px] text-nude-600 mb-1">🌟 Dream</div>
+                          <ul className="text-xs text-nude-800 space-y-1">
+                            {message.recommendations.dream.map((id) => (
+                              <li key={`dream-${id}`}>{getUniversityName(id)}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                      {message.recommendations.target?.length > 0 && (
+                        <div>
+                          <div className="text-[11px] text-nude-600 mb-1">🎯 Target</div>
+                          <ul className="text-xs text-nude-800 space-y-1">
+                            {message.recommendations.target.map((id) => (
+                              <li key={`target-${id}`}>{getUniversityName(id)}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                      {message.recommendations.safe?.length > 0 && (
+                        <div>
+                          <div className="text-[11px] text-nude-600 mb-1">🛟 Safe</div>
+                          <ul className="text-xs text-nude-800 space-y-1">
+                            {message.recommendations.safe.map((id) => (
+                              <li key={`safe-${id}`}>{getUniversityName(id)}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    <div className="text-xs text-nude-600">No recommendations returned.</div>
+                  )}
+                </div>
+              )}
+
+              {message.actions && message.actions.some((action) => action.type === 'shortlist') && (
+                <div className="mt-3">
+                  <div className="text-xs font-semibold text-nude-700">Shortlisted</div>
+                  <ul className="text-xs text-nude-800 space-y-1 mt-1">
+                    {message.actions
+                      .filter((action) => action.type === 'shortlist')
+                      .map((action, idx) => (
+                        <li key={`shortlist-${idx}`}>
+                          {getUniversityName(action.data?.university_id)}
+                        </li>
+                      ))}
+                  </ul>
+                </div>
+              )}
+
+              {message.lockedUniversities && message.lockedUniversities.length > 0 && (
+                <div className="mt-3">
+                  <div className="text-xs font-semibold text-nude-700">Locked universities</div>
+                  <ul className="text-xs text-nude-800 space-y-1 mt-1">
+                    {message.lockedUniversities.map((uni) => (
+                      <li key={`locked-${uni.id}`}>
+                        {uni.name}
+                        {uni.category ? ` (${uni.category})` : ''}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {message.shortlistedUniversities && message.shortlistedUniversities.length > 0 && (
+                <div className="mt-3">
+                  <div className="text-xs font-semibold text-nude-700">Shortlisted (not locked)</div>
+                  <ul className="text-xs text-nude-800 space-y-1 mt-1">
+                    {message.shortlistedUniversities.map((uni) => (
+                      <li key={`short-${uni.id}`}>
+                        {uni.name}
+                        {uni.category ? ` (${uni.category})` : ''}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {message.tasks && message.tasks.length > 0 && (
+                <div className="mt-3">
+                  <div className="text-xs font-semibold text-nude-700">Tasks</div>
+                  <ul className="text-xs text-nude-800 space-y-1 mt-1">
+                    {message.tasks.map((task) => (
+                      <li key={`task-${task.id}`}>
+                        {task.title} — {task.status.replace('_', ' ')}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
               
               {message.actions && message.actions.length > 0 && (
                 <div className="mt-3 space-y-2">
@@ -142,6 +337,29 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ onActionExecute }) => {
                       </button>
                     )
                   ))}
+                </div>
+              )}
+
+              {(message.recommendations || (message.actions && message.actions.some((action) => action.type === 'shortlist')) || message.tasks || message.lockedUniversities || message.shortlistedUniversities) && (
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <Link
+                    to="/universities?tab=recommendations"
+                    className="px-3 py-1.5 text-xs bg-white text-sand-700 rounded-lg hover:bg-sand-50 transition-colors border border-sand-300"
+                  >
+                    Open recommended universities
+                  </Link>
+                  <Link
+                    to="/universities?tab=shortlisted"
+                    className="px-3 py-1.5 text-xs bg-white text-sand-700 rounded-lg hover:bg-sand-50 transition-colors border border-sand-300"
+                  >
+                    Open shortlisted universities
+                  </Link>
+                  <Link
+                    to="/applications"
+                    className="px-3 py-1.5 text-xs bg-white text-sand-700 rounded-lg hover:bg-sand-50 transition-colors border border-sand-300"
+                  >
+                    Open application tasks
+                  </Link>
                 </div>
               )}
               
@@ -203,13 +421,22 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ onActionExecute }) => {
         </div>
         
         <div className="flex gap-2 mt-3">
-          <button className="px-3 py-1.5 text-xs bg-nude-100 text-nude-700 rounded-full hover:bg-nude-200 transition-colors">
+            <button
+              onClick={() => sendMessage('Recommend universities')}
+              className="px-3 py-1.5 text-xs bg-nude-100 text-nude-700 rounded-full hover:bg-nude-200 transition-colors"
+            >
             Recommend universities
           </button>
-          <button className="px-3 py-1.5 text-xs bg-nude-100 text-nude-700 rounded-full hover:bg-nude-200 transition-colors">
+            <button
+              onClick={() => sendMessage('Profile analysis')}
+              className="px-3 py-1.5 text-xs bg-nude-100 text-nude-700 rounded-full hover:bg-nude-200 transition-colors"
+            >
             Profile analysis
           </button>
-          <button className="px-3 py-1.5 text-xs bg-nude-100 text-nude-700 rounded-full hover:bg-nude-200 transition-colors">
+            <button
+              onClick={() => sendMessage('Application help')}
+              className="px-3 py-1.5 text-xs bg-nude-100 text-nude-700 rounded-full hover:bg-nude-200 transition-colors"
+            >
             Application help
           </button>
         </div>

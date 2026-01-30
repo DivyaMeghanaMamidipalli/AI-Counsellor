@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import { MainLayout } from '../components/layout/MainLayout';
 import { Card, CardHeader, CardTitle, CardContent } from '../components/common/Card';
 import { Button } from '../components/common/Button';
@@ -9,6 +10,7 @@ import { useProfileStore } from '../store/profileStore';
 import { useUniversitiesStore } from '../store/universitiesStore';
 
 export const Universities: React.FC = () => {
+  const location = useLocation();
   const {
     recommendations,
     shortlisted,
@@ -26,6 +28,14 @@ export const Universities: React.FC = () => {
   useEffect(() => {
     fetchAll(); // Will use cache if available
   }, []);
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const tab = params.get('tab');
+    if (tab === 'recommendations' || tab === 'shortlisted' || tab === 'locked') {
+      setActiveTab(tab);
+    }
+  }, [location.search]);
 
   const handleShortlist = async (universityId: number) => {
     try {
