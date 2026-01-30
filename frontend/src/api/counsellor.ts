@@ -23,13 +23,25 @@ export interface CounsellorUniversitySummary {
   locked?: boolean;
 }
 
+export interface CounsellorUniversityDetail {
+  id: number;
+  name: string;
+  country?: string;
+  avg_cost?: number;
+  fields?: string[];
+  cost_fit?: string;
+  risk_level?: string;
+  acceptance_likelihood?: string;
+  category?: string;
+}
+
 export interface CounsellorResponse {
   intent?: string;
   reply: string;
   recommendations?: {
-    dream: number[];
-    target: number[];
-    safe: number[];
+    dream: CounsellorUniversityDetail[];
+    target: CounsellorUniversityDetail[];
+    safe: CounsellorUniversityDetail[];
   };
   actions?: CounsellorActionResult[];
   tasks?: CounsellorTaskSummary[];

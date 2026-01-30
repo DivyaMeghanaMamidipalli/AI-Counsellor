@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useCallback } from 'react';
 import { MainLayout } from '../components/layout/MainLayout';
 import { Card, CardHeader, CardTitle, CardContent } from '../components/common/Card';
 import { Badge } from '../components/common/Badge';
@@ -15,10 +15,19 @@ export const Dashboard: React.FC = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
 
+  // Use useCallback to prevent unnecessary re-renders
+  const loadDashboardData = useCallback(async () => {
+    try {
+      await Promise.all([fetchDashboard(), fetchTasks()]);
+    } catch (error) {
+      console.error('Failed to load dashboard data:', error);
+    }
+  }, [fetchDashboard, fetchTasks]);
+
+  // Only fetch once on component mount
   useEffect(() => {
-    fetchDashboard(); // Will use cache if available
-    fetchTasks(); // Will use cache if available
-  }, []);
+    loadDashboardData();
+  }, []); // Empty dependency array - fetch only once
 
   const handleTaskToggle = async (taskId: number, currentStatus: string) => {
     try {

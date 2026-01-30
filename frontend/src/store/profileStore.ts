@@ -3,8 +3,6 @@ import { persist } from 'zustand/middleware';
 import { onboardingApi, OnboardingData } from '../api/onboarding';
 import { dashboardApi, DashboardResponse, getStageNumber } from '../api/dashboard';
 
-const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes cache
-
 interface ProfileState {
   onboardingData: OnboardingData | null;
   isOnboardingComplete: boolean;
@@ -95,11 +93,11 @@ export const useProfileStore = create<ProfileState>(
     const state = get();
     const now = Date.now();
     
-    // Use cached data if available and not expired
+    // Use cached data if available and not expired (extended cache to 10 minutes)
     if (!force && state.dashboardData && state.lastFetchTime) {
       const timeSinceLastFetch = now - state.lastFetchTime;
-      if (timeSinceLastFetch < CACHE_DURATION) {
-        return; // Return cached data
+      if (timeSinceLastFetch < 10 * 60 * 1000) { // 10 minutes - increased from 5
+        return; // Return cached data without setting loading
       }
     }
 
@@ -118,7 +116,7 @@ export const useProfileStore = create<ProfileState>(
         error: error.response?.data?.detail || 'Failed to fetch dashboard',
         isLoading: false,
       });
-      throw error;
+      // Don't throw - allow UI to work with cached data on error
     }
   },
 

@@ -1,20 +1,12 @@
 import { useProfileStore } from '../store/profileStore';
-import { useEffect } from 'react';
 
 export const useStage = () => {
   const {
     currentStage,
     isOnboardingComplete,
     dashboardData,
-    fetchDashboard,
     isLoading,
   } = useProfileStore();
-
-  useEffect(() => {
-    if (isOnboardingComplete && !dashboardData) {
-      fetchDashboard();
-    }
-  }, [isOnboardingComplete, dashboardData, fetchDashboard]);
 
   const getStageInfo = (stageNumber: number) => {
     const stages = {

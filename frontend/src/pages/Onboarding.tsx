@@ -4,8 +4,8 @@ import { Button } from '../components/common/Button';
 import { Input, Select } from '../components/common/Input';
 import { useProfileStore } from '../store/profileStore';
 import { useUniversitiesStore } from '../store/universitiesStore';
+import { useOptionsStore } from '../store/optionsStore';
 import { ProgressBar } from '../components/common/ProgressBar';
-import { apiClient } from '../api/client';
 import {
   COUNTRY_OPTIONS,
   EDUCATION_LEVELS,
@@ -18,31 +18,24 @@ export const Onboarding: React.FC = () => {
   const navigate = useNavigate();
   const { completeOnboarding, updateProfile, isOnboardingComplete, dashboardData, isLoading } = useProfileStore();
   const { invalidateCache: invalidateUniversitiesCache } = useUniversitiesStore();
+  const { options, fetchOptions } = useOptionsStore();
   const [currentStep, setCurrentStep] = useState(1);
   const totalSteps = 4;
-  const [availableFields, setAvailableFields] = useState<string[]>([]);
 
   // Detect if we're in edit mode
   const isEditMode = isOnboardingComplete;
 
-  // Load available fields from backend on mount
+  // Load options from store (cached, won't make unnecessary API calls)
   useEffect(() => {
-    const loadOptions = async () => {
-      try {
-        const response = await apiClient.get('/universities/options');
-        setAvailableFields(response.data.field_options || []);
-      } catch (error) {
-        console.error('Failed to load field options:', error);
-        // Fallback to default fields
-        setAvailableFields([
-          "Computer Science / IT",
-          "Data Science / Analytics",
-          "Engineering"
-        ]);
-      }
-    };
-    loadOptions();
-  }, []);
+    fetchOptions();
+  }, [fetchOptions]);
+
+  // Use cached options or fallback to defaults
+  const availableFields = options?.field_options || [
+    "Computer Science / IT",
+    "Data Science / Analytics",
+    "Engineering"
+  ];
 
   const [formData, setFormData] = useState({
     // Academic Background

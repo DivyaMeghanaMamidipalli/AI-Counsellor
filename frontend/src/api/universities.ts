@@ -27,6 +27,12 @@ export interface UnlockUniversityResponse {
   warning?: string | null;
 }
 
+export interface UniversityRecommendations {
+  dream: University[];
+  target: University[];
+  safe: University[];
+}
+
 export const universitiesApi = {
   getRecommendations: async (): Promise<{ dream: University[]; target: University[]; safe: University[] }> => {
     const response = await apiClient.get('/api/universities/recommendations');
@@ -68,5 +74,10 @@ export const universitiesApi = {
   removeFromShortlist: async (universityId: number): Promise<{ message: string }> => {
     const response = await apiClient.delete(`/api/universities/shortlist/${universityId}`);
     return response.data;
+  },
+
+  getAllUniversities: async (): Promise<University[]> => {
+    const response = await apiClient.get('/api/universities/all');
+    return response.data.universities || [];
   },
 };

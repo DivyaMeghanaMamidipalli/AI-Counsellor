@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { MainLayout } from '../components/layout/MainLayout';
 import { Card, CardHeader, CardTitle, CardContent } from '../components/common/Card';
@@ -10,11 +10,15 @@ export const Home: React.FC = () => {
   const navigate = useNavigate();
   const { dashboardData, fetchDashboard, isOnboardingComplete, currentStage, isLoading } = useProfileStore();
 
-  useEffect(() => {
-    if (isOnboardingComplete) {
+  const loadDashboard = useCallback(() => {
+    if (isOnboardingComplete && !dashboardData) {
       fetchDashboard();
     }
-  }, [isOnboardingComplete, fetchDashboard]);
+  }, [isOnboardingComplete, dashboardData, fetchDashboard]);
+
+  useEffect(() => {
+    loadDashboard();
+  }, [isOnboardingComplete]); // Only depend on onboarding status, not fetchDashboard
 
   // Stage information
   const stages = [

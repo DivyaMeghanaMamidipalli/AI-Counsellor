@@ -79,28 +79,65 @@ CRITICAL RULES:
 - You must NOT invent universities or data - use ONLY provided universities
 - You must return VALID JSON only (no markdown or code blocks)
 - If unsure, return intent = "general_help" with no actions
+- If you say you locked/unlocked/shortlisted something, you MUST include the matching action in the actions array
+- ONLY include recommendations when user EXPLICITLY asks for university recommendations or profile analysis
+- For general questions, application help, or task-related queries, return empty recommendations {{}}
 
-FOR PROFILE ANALYSIS REQUESTS:
-- Explain how we calculated your recommendation scores
-- Show your profile metrics and the scoring factors
-- Provide insights on your strengths and improvements needed
+FOR PROFILE ANALYSIS REQUESTS ONLY:
+- Return the top 3-5 universities from each category (Dream/Target/Safe)
+- ALWAYS start with: "Since your budget is [user's budget] and your preferred majors are [user's fields], based on these here are my recommendations:"
+- Then list the universities with brief reasons
+- Use simple filters: "they're in your budget range", "they offer your target field", "they're in your preferred countries"
+- Avoid lengthy explanations about calculation methods - just state the match reasons
 
-FOR RECOMMEND UNIVERSITIES REQUESTS:
-- Say: "Based on your profile, selected countries, and budget, here are universities that match"
-- Categorize into Dream/Target/Safe with explanations
+FOR RECOMMEND UNIVERSITIES REQUESTS ONLY:
+- Return the top 3-5 universities from each category (Dream/Target/Safe)
+- Say: "Based on your profile, here are universities that match your criteria"
+- Briefly state why each is recommended using simple filter reasons
+- Group into Dream/Target/Safe categories with brief explanations
 
 FOR "WHY IS THIS RECOMMENDED" REQUESTS:
+- Do NOT return full recommendation list
+- Only explain the specific university mentioned
 - Explain all factors: field match, budget fit, location, academic alignment
-- Be specific about which criteria helped this university get recommended
 
 FOR APPLICATION HELP:
+- Do NOT return recommendations list
 - If you have locked universities, guide application steps for those universities
 - Show your current tasks and ask targeted questions for new tasks
 - If no locked universities, show shortlisted options and ask which to lock
 
+FOR GENERAL QUESTIONS OR CONVERSATIONS:
+- Do NOT return recommendations list
+- Answer the question directly and conversationally
+- Only suggest actions if relevant to the question
+
+WHEN USER ASKS TO SHORTLIST A UNIVERSITY:
+- Parse the university name from user message
+- Find exact match in the Recommendations list (search by name, case-insensitive)
+- Extract the university_id from the matched recommendation
+- If university is in recommendations, return shortlist action with correct university_id
+- If university name not found in recommendations, explain: "I don't have [University Name] in your recommendations. Please choose from available universities in the Recommendations tab."
+- Do NOT invent or guess university_ids
+
+WHEN USER ASKS TO LOCK A UNIVERSITY:
+- If they mention a specific shortlisted university, ALWAYS suggest locking it with action type "lock"
+- Check the shortlisted universities list and find the matching university_id
+- Return the lock action in the actions array
+
+WHEN USER ASKS TO UNLOCK A UNIVERSITY:
+- Check if the user's message contains confirmation words: yes, confirm, proceed, unlock it, go ahead, ok, sure, proceed with unlock
+- If user is asking to unlock without confirmation: Ask for confirmation first with "Are you sure you want to unlock [University Name]? This will move it back to your shortlist."
+- Do NOT include the unlock action in the confirmation request
+- If user confirms: Find the locked university in "Your Locked Universities" list by name and extract its university_id
+- Then return the unlock action with type="unlock" and the correct university_id
+- Treat phrases like "unlock", "remove lock", "remove from locked", "undo lock" as unlock requests
+- Unlocking removes the lock, returning it to shortlisted status
+
 Allowed actions:
 - shortlist (requires university_id and category)
-- lock (requires university_id)
+- lock (requires university_id) - Use this when user wants to lock a shortlisted university
+- unlock (requires university_id) - Use this when user wants to unlock a locked university
 - create_task (requires title, optional stage)
 - update_task (requires task_id and status)
 - generate_tasks (no fields)
@@ -124,17 +161,15 @@ Your Current Tasks:
 Your Question:
 {user_message}
 
-RESPOND IN THIS EXACT JSON FORMAT:
+RESPOND IN THIS EXACT JSON FORMAT (NO markdown code blocks, just raw JSON):
 {{
-  "intent": "recommend_universities|profile_analysis|lock_university|create_tasks|application_help|general_help",
+    "intent": "recommend_universities|profile_analysis|lock_university|unlock_university|create_tasks|application_help|general_help",
   "explanation": "Your response directly to the student (use you/your, no 3rd person)",
-  "recommendations": {{"dream": [ids], "target": [ids], "safe": [ids]}},
+  "recommendations": {{"dream": [], "target": [], "safe": []}},
   "actions": [
-    {{"type": "shortlist", "university_id": 1, "category": "Dream"}},
-    {{"type": "lock", "university_id": 1}},
-    {{"type": "create_task", "title": "Draft SOP", "stage": "STAGE_4_APPLICATION"}},
-    {{"type": "update_task", "task_id": 10, "status": "completed"}},
-    {{"type": "generate_tasks"}}
+    {{"type": "lock", "university_id": 5}},
+        {{"type": "unlock", "university_id": 5}},
+    {{"type": "create_task", "title": "Draft SOP", "stage": "STAGE_4_APPLICATION"}}
   ]
 }}
 """.strip()
@@ -225,6 +260,11 @@ def _execute_action(
         if not university_id:
             return ActionResult(type=action_type, status="failed", message="Missing university_id")
 
+        # Validate that university exists
+        university = db.query(University).filter(University.id == university_id).first()
+        if not university:
+            return ActionResult(type=action_type, status="failed", message=f"University with ID {university_id} not found in database", university_id=university_id)
+
         existing = db.query(Shortlist).filter(
             Shortlist.user_id == current_user.id,
             Shortlist.university_id == university_id
@@ -263,6 +303,26 @@ def _execute_action(
         db.commit()
         update_user_stage(db, current_user.id)
         return ActionResult(type=action_type, status="executed", message="University locked", university_id=university_id)
+
+    if action_type == "unlock":
+        university_id = action.get("university_id")
+        if not university_id:
+            return ActionResult(type=action_type, status="failed", message="Missing university_id")
+
+        shortlist = db.query(Shortlist).filter(
+            Shortlist.user_id == current_user.id,
+            Shortlist.university_id == university_id
+        ).first()
+
+        if not shortlist:
+            return ActionResult(type=action_type, status="failed", message="University not found", university_id=university_id)
+        if not shortlist.locked:
+            return ActionResult(type=action_type, status="skipped", message="University is not locked", university_id=university_id)
+
+        shortlist.locked = False
+        db.commit()
+        update_user_stage(db, current_user.id)
+        return ActionResult(type=action_type, status="executed", message="University unlocked", university_id=university_id)
 
     if action_type == "create_task":
         title = action.get("title")
@@ -333,7 +393,12 @@ def counsellor_chat(
     client = _configure_groq_client()
 
     model_name = os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile")
+    fallback_model = "llama-3.1-8b-instant"
 
+    completion = None
+    last_error = None
+
+    # Try primary model first
     try:
         completion = client.chat.completions.create(
             model=model_name,
@@ -344,9 +409,36 @@ def counsellor_chat(
             temperature=0.2,
         )
     except Exception as exc:
+        last_error = exc
+        # Check if it's a rate limit error
+        error_str = str(exc).lower()
+        if "rate_limit" in error_str or "429" in error_str:
+            # Try fallback model
+            try:
+                print(f"Rate limit on {model_name}, trying fallback: {fallback_model}")
+                completion = client.chat.completions.create(
+                    model=fallback_model,
+                    messages=[
+                        {"role": "system", "content": "Return STRICT JSON only. No markdown."},
+                        {"role": "user", "content": prompt}
+                    ],
+                    temperature=0.2,
+                )
+            except Exception as fallback_exc:
+                raise HTTPException(
+                    status_code=status.HTTP_502_BAD_GATEWAY,
+                    detail=f"Groq error: Both primary and fallback models failed. Primary: {last_error}, Fallback: {fallback_exc}"
+                )
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_502_BAD_GATEWAY,
+                detail=f"Groq error: {exc}"
+            )
+
+    if not completion:
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
-            detail=f"Groq error: {exc}"
+            detail="Failed to get response from Groq"
         )
 
     response_text = completion.choices[0].message.content if completion.choices else ""
@@ -362,10 +454,26 @@ def counsellor_chat(
     refreshed_shortlist = _get_shortlist_snapshot(db, current_user)
     refreshed_tasks = _get_tasks_snapshot(db, current_user)
 
+    # Map recommendation IDs to full university objects
+    recommendations_with_names = {}
+    for category, items in parsed.get("recommendations", {}).items():
+        recommendations_with_names[category] = []
+        if items:
+            for item in items:
+                # Handle both ID (int) and object formats
+                if isinstance(item, dict) and "id" in item:
+                    # Already a full object, just use it
+                    recommendations_with_names[category].append(item)
+                elif isinstance(item, int):
+                    # Just an ID, look it up
+                    uni_data = next((u for u in recommendations.get(category, []) if u["id"] == item), None)
+                    if uni_data:
+                        recommendations_with_names[category].append(uni_data)
+
     return {
         "intent": parsed.get("intent"),
         "reply": parsed.get("explanation", ""),
-        "recommendations": parsed.get("recommendations"),
+        "recommendations": recommendations_with_names,
         "actions": [a.dict() for a in executed_actions],
         "locked_universities": refreshed_shortlist["locked"],
         "shortlisted_universities": refreshed_shortlist["shortlisted"],

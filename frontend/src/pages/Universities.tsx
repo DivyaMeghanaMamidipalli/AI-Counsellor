@@ -15,24 +15,29 @@ export const Universities: React.FC = () => {
     recommendations,
     shortlisted,
     locked,
+    allUniversities,
     isLoading,
     fetchAll,
+    fetchAllUniversities,
     shortlistUniversity,
     lockUniversity,
     unlockUniversity,
     removeFromShortlist,
   } = useUniversitiesStore();
   const { fetchDashboard, invalidateCache: invalidateProfileCache } = useProfileStore();
-  const [activeTab, setActiveTab] = useState<'recommendations' | 'shortlisted' | 'locked'>('recommendations');
+  const [activeTab, setActiveTab] = useState<'all' | 'recommendations' | 'shortlisted' | 'locked'>('recommendations');
+  const [showUnlockModal, setShowUnlockModal] = useState(false);
+  const [universityToUnlock, setUniversityToUnlock] = useState<number | null>(null);
 
   useEffect(() => {
     fetchAll(); // Will use cache if available
+    fetchAllUniversities();
   }, []);
 
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     const tab = params.get('tab');
-    if (tab === 'recommendations' || tab === 'shortlisted' || tab === 'locked') {
+    if (tab === 'all' || tab === 'recommendations' || tab === 'shortlisted' || tab === 'locked') {
       setActiveTab(tab);
     }
   }, [location.search]);
@@ -56,23 +61,28 @@ export const Universities: React.FC = () => {
   };
 
   const handleUnlock = async (universityId: number) => {
-    try {
-      const shouldUnlock = window.confirm(
-        'Unlocking a university signals a change in commitment. You can unlock later if needed, but do it intentionally to stay focused.\n\nDo you want to continue?'
-      );
-      if (!shouldUnlock) {
-        return;
-      }
+    setUniversityToUnlock(universityId);
+    setShowUnlockModal(true);
+  };
 
-      const warning = await unlockUniversity(universityId);
-      if (warning) {
-        window.alert(warning);
-      }
+  const confirmUnlock = async () => {
+    if (!universityToUnlock) return;
+
+    try {
+      await unlockUniversity(universityToUnlock);
       invalidateProfileCache(); // Invalidate profile cache
       await fetchDashboard(true); // Force refresh dashboard to update stage
     } catch (error) {
       console.error('Failed to unlock:', error);
+    } finally {
+      setShowUnlockModal(false);
+      setUniversityToUnlock(null);
     }
+  };
+
+  const cancelUnlock = () => {
+    setShowUnlockModal(false);
+    setUniversityToUnlock(null);
   };
 
   const handleRemove = async (universityId: number) => {
@@ -91,6 +101,19 @@ export const Universities: React.FC = () => {
     return shortlisted.some(uni => uni.id === universityId) || locked.some(uni => uni.id === universityId);
   };
 
+  const isUniversityLocked = (universityId: number) => {
+    return locked.some(uni => uni.id === universityId);
+  };
+
+  const isUniversityRecommended = (universityId: number) => {
+    if (!recommendations) return false;
+    return [
+      ...recommendations.dream,
+      ...recommendations.target,
+      ...recommendations.safe,
+    ].some(uni => uni.id === universityId);
+  };
+
   const getChanceBadgeVariant = (chance: string) => {
     return chance === 'High' ? 'success' : chance === 'Medium' ? 'warning' : 'info';
   };
@@ -99,14 +122,19 @@ export const Universities: React.FC = () => {
     return risk === 'Low' ? 'success' : risk === 'Medium' ? 'warning' : 'danger';
   };
 
-  const renderUniversityCard = (university: University, context: 'recommendations' | 'shortlisted' | 'locked' = 'recommendations') => (
+  const renderUniversityCard = (university: University, context: 'all' | 'recommendations' | 'shortlisted' | 'locked' = 'recommendations') => (
     <Card key={university.id} hover>
       <CardContent>
         <div className="flex justify-between items-start mb-4">
           <div className="flex-1">
             <div className="flex items-center gap-2">
               <h3 className="text-lg font-semibold text-nude-900 mb-1">{university.name}</h3>
-              {university.locked && (
+              {context === 'all' && isUniversityRecommended(university.id) && (
+                <Badge variant="warning" size="sm">
+                  👑 Recommended
+                </Badge>
+              )}
+              {isUniversityLocked(university.id) && (
                 <Badge variant="warning" size="sm">
                   🔒 Locked
                 </Badge>
@@ -149,9 +177,18 @@ export const Universities: React.FC = () => {
         </div>
 
         <div className="flex gap-2">
-          {context === 'recommendations' && (
+          {(context === 'recommendations' || context === 'all') && (
             <>
-              {isUniversityShortlisted(university.id) ? (
+              {isUniversityLocked(university.id) ? (
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => handleUnlock(university.id)}
+                  className="flex-1"
+                >
+                  Unlock
+                </Button>
+              ) : isUniversityShortlisted(university.id) ? (
                 <Button
                   variant="outline"
                   size="sm"
@@ -222,6 +259,10 @@ export const Universities: React.FC = () => {
     </Card>
   );
 
+  const recommendationsCount = recommendations
+    ? (recommendations.dream?.length || 0) + (recommendations.target?.length || 0) + (recommendations.safe?.length || 0)
+    : 0;
+
   if (isLoading) {
     return (
       <MainLayout title="Universities">
@@ -238,7 +279,8 @@ export const Universities: React.FC = () => {
         {/* Tabs */}
         <div className="flex gap-2 border-b border-nude-200">
           {[
-            { key: 'recommendations', label: 'Recommendations', count: 0 },
+            { key: 'all', label: 'All Universities', count: allUniversities.length },
+            { key: 'recommendations', label: 'Recommendations', count: recommendationsCount },
             { key: 'shortlisted', label: 'Shortlisted', count: shortlisted.length },
             { key: 'locked', label: 'Locked', count: locked.length },
           ].map((tab) => (
@@ -262,6 +304,20 @@ export const Universities: React.FC = () => {
         </div>
 
         {/* Content */}
+        {activeTab === 'all' && (
+          <div>
+            {allUniversities.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-12">
+                <p className="text-nude-600 mb-4">No universities found</p>
+              </div>
+            ) : (
+              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {allUniversities.map((uni) => renderUniversityCard(uni, 'all'))}
+              </div>
+            )}
+          </div>
+        )}
+
         {activeTab === 'recommendations' && recommendations && (
           <div className="space-y-8">
             {/* Dream Universities */}
@@ -335,10 +391,20 @@ export const Universities: React.FC = () => {
           <div>
             {locked.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-12">
-                <p className="text-nude-600 mb-4">No universities locked yet</p>
-                <Button variant="primary" onClick={() => setActiveTab('shortlisted')}>
-                  View Shortlisted
-                </Button>
+                <div className="max-w-md text-center">
+                  <div className="flex items-center justify-center w-20 h-20 mx-auto mb-6 bg-amber-100 rounded-full">
+                    <span className="text-4xl">🔒</span>
+                  </div>
+                  <h3 className="text-xl font-bold text-nude-900 mb-3">
+                    No Locked Universities
+                  </h3>
+                  <p className="text-nude-600 mb-6">
+                    You have no locked universities. Please lock at least one to proceed with applications.
+                  </p>
+                  <Button variant="primary" onClick={() => setActiveTab('shortlisted')}>
+                    View Shortlisted Universities
+                  </Button>
+                </div>
               </div>
             ) : (
               <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -348,6 +414,53 @@ export const Universities: React.FC = () => {
           </div>
         )}
       </div>
+
+      {/* Unlock Confirmation Modal */}
+      {showUnlockModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          {/* Backdrop */}
+          <div 
+            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+            onClick={cancelUnlock}
+          />
+          
+          {/* Modal */}
+          <div className="relative bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 animate-in fade-in zoom-in duration-200">
+            {/* Icon */}
+            <div className="flex items-center justify-center w-16 h-16 mx-auto mb-4 bg-amber-100 rounded-full">
+              <span className="text-3xl">🔓</span>
+            </div>
+            
+            {/* Title */}
+            <h3 className="text-xl font-bold text-nude-900 text-center mb-3">
+              Unlock University?
+            </h3>
+            
+            {/* Message */}
+            <p className="text-nude-700 text-center mb-6 leading-relaxed">
+              Unlocking a university signals a change in commitment. You can unlock later if needed, but do it intentionally to stay focused.
+            </p>
+            
+            {/* Actions */}
+            <div className="flex gap-3">
+              <Button
+                variant="outline"
+                onClick={cancelUnlock}
+                className="flex-1"
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="primary"
+                onClick={confirmUnlock}
+                className="flex-1 bg-gradient-to-r from-sand-600 to-nude-600 hover:from-sand-700 hover:to-nude-700"
+              >
+                Yes, Unlock
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </MainLayout>
   );
 };

@@ -4,6 +4,7 @@ import { Button } from '../common/Button';
 import { counsellorApi } from '../../api/counsellor';
 import { useUniversitiesStore } from '../../store/universitiesStore';
 import { useAuthStore } from '../../store/authStore';
+import { useProfileStore } from '../../store/profileStore';
 
 interface Message {
   id: string;
@@ -12,9 +13,9 @@ interface Message {
   timestamp: Date;
   actions?: ActionSuggestion[];
   recommendations?: {
-    dream: number[];
-    target: number[];
-    safe: number[];
+    dream: Array<{ id: number; name: string; country?: string }>;
+    target: Array<{ id: number; name: string; country?: string }>;
+    safe: Array<{ id: number; name: string; country?: string }>;
   };
   tasks?: Array<{
     id: number;
@@ -35,7 +36,7 @@ interface Message {
 }
 
 interface ActionSuggestion {
-  type: 'shortlist' | 'lock' | 'create_task' | 'update_task' | 'generate_tasks';
+  type: 'shortlist' | 'lock' | 'unlock' | 'create_task' | 'update_task' | 'generate_tasks';
   label: string;
   data: any;
   status?: 'executed' | 'skipped' | 'failed' | string;
@@ -49,6 +50,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ onActionExecute }) => {
   const userId = useAuthStore((state) => state.user?.id || 'guest');
   const storageKey = useMemo(() => `ai-counsellor-chat:${userId}`, [userId]);
   const { recommendations, shortlisted, locked, fetchAll } = useUniversitiesStore();
+  const { fetchDashboard } = useProfileStore();
   const defaultMessages = useMemo<Message[]>(() => ([
     {
       id: '1',
@@ -145,6 +147,20 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ onActionExecute }) => {
 
     try {
       const response = await counsellorApi.sendMessage(userMessage.content);
+      
+      // If actions were executed, refresh university data
+      if (response.actions && response.actions.length > 0) {
+        const hasUniversityActions = response.actions.some(
+          (action) => action.type === 'shortlist' || action.type === 'lock' || action.type === 'unlock'
+        );
+        if (hasUniversityActions) {
+          // Force refresh university data from backend
+          await fetchAll(true);
+          // Also refresh profile to update stage (needed for locking/unlocking Applications)
+          await fetchDashboard(true);
+        }
+      }
+      
       const aiMessage: Message = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
@@ -228,8 +244,11 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ onActionExecute }) => {
                         <div>
                           <div className="text-[11px] text-nude-600 mb-1">🌟 Dream</div>
                           <ul className="text-xs text-nude-800 space-y-1">
-                            {message.recommendations.dream.map((id) => (
-                              <li key={`dream-${id}`}>{getUniversityName(id)}</li>
+                            {message.recommendations.dream.map((uni) => (
+                              <li key={`dream-${uni.id}`}>
+                                {uni.name}
+                                {uni.country ? ` (${uni.country})` : ''}
+                              </li>
                             ))}
                           </ul>
                         </div>
@@ -238,18 +257,24 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ onActionExecute }) => {
                         <div>
                           <div className="text-[11px] text-nude-600 mb-1">🎯 Target</div>
                           <ul className="text-xs text-nude-800 space-y-1">
-                            {message.recommendations.target.map((id) => (
-                              <li key={`target-${id}`}>{getUniversityName(id)}</li>
+                            {message.recommendations.target.map((uni) => (
+                              <li key={`target-${uni.id}`}>
+                                {uni.name}
+                                {uni.country ? ` (${uni.country})` : ''}
+                              </li>
                             ))}
                           </ul>
                         </div>
                       )}
                       {message.recommendations.safe?.length > 0 && (
                         <div>
-                          <div className="text-[11px] text-nude-600 mb-1">🛟 Safe</div>
+                          <div className="text-[11px] text-nude-600 mb-1">✓ Safe</div>
                           <ul className="text-xs text-nude-800 space-y-1">
-                            {message.recommendations.safe.map((id) => (
-                              <li key={`safe-${id}`}>{getUniversityName(id)}</li>
+                            {message.recommendations.safe.map((uni) => (
+                              <li key={`safe-${uni.id}`}>
+                                {uni.name}
+                                {uni.country ? ` (${uni.country})` : ''}
+                              </li>
                             ))}
                           </ul>
                         </div>

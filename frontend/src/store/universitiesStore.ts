@@ -2,17 +2,20 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { universitiesApi, University, UniversityRecommendations } from '../api/universities';
 
-const CACHE_DURATION = 10 * 60 * 1000; // 10 minutes cache for universities
+const CACHE_DURATION = 15 * 60 * 1000; // 15 minutes cache for universities - increased from 10
 
 interface UniversitiesState {
   recommendations: UniversityRecommendations | null;
   shortlisted: University[];
   locked: University[];
+  allUniversities: University[];
   isLoading: boolean;
   error: string | null;
   lastFetchTime: number | null;
+  fetchInProgress: boolean; // Prevent concurrent fetches
 
   fetchAll: (force?: boolean) => Promise<void>;
+  fetchAllUniversities: () => Promise<void>;
   shortlistUniversity: (universityId: number) => Promise<void>;
   lockUniversity: (universityId: number) => Promise<void>;
   unlockUniversity: (universityId: number) => Promise<string | null>;
@@ -26,13 +29,20 @@ export const useUniversitiesStore = create<UniversitiesState>(
       recommendations: null,
       shortlisted: [],
       locked: [],
+      allUniversities: [],
       isLoading: false,
       error: null,
       lastFetchTime: null,
+      fetchInProgress: false,
 
       fetchAll: async (force = false) => {
         const state = get();
         const now = Date.now();
+
+        // Prevent concurrent fetch requests
+        if (state.fetchInProgress) {
+          return;
+        }
 
         // Use cached data if available and not expired
         if (!force && state.recommendations && state.lastFetchTime) {
@@ -42,7 +52,7 @@ export const useUniversitiesStore = create<UniversitiesState>(
           }
         }
 
-        set({ isLoading: true, error: null });
+        set({ isLoading: true, error: null, fetchInProgress: true });
         try {
           const [recs, short, lock] = await Promise.all([
             universitiesApi.getRecommendations(),
@@ -55,12 +65,23 @@ export const useUniversitiesStore = create<UniversitiesState>(
             locked: lock,
             isLoading: false,
             lastFetchTime: now,
+            fetchInProgress: false,
           });
         } catch (error: any) {
           set({
             error: error.response?.data?.message || 'Failed to load universities',
             isLoading: false,
+            fetchInProgress: false,
           });
+        }
+      },
+
+      fetchAllUniversities: async () => {
+        try {
+          const universities = await universitiesApi.getAllUniversities();
+          set({ allUniversities: universities });
+        } catch (error: any) {
+          console.error('Failed to fetch all universities:', error);
         }
       },
 

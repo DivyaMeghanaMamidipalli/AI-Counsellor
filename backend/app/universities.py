@@ -677,3 +677,27 @@ def remove_from_shortlist(
         "university_id": university_id,
         "new_stage": new_stage
     }
+
+
+@router.get("/all")
+def get_all_universities(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Get all universities in the database
+    """
+    universities = db.query(University).all()
+    
+    return {
+        "universities": [
+            {
+                "id": uni.id,
+                "name": uni.name,
+                "country": uni.country,
+                "avg_cost": uni.avg_cost,
+                "fields": uni.fields,
+            }
+            for uni in universities
+        ]
+    }

@@ -2,13 +2,15 @@ import { QueryClient, DefaultOptions } from '@tanstack/react-query';
 
 const queryConfig: DefaultOptions = {
   queries: {
-    // Cache data for 5 minutes
-    staleTime: 5 * 60 * 1000,
-    // Keep unused data in cache for 10 minutes
-    gcTime: 10 * 60 * 1000,
-    // Retry failed requests 3 times with exponential backoff
-    retry: 3,
+    // Longer cache times to reduce API calls
+    staleTime: 10 * 60 * 1000, // 10 minutes - increased from 5
+    // Keep unused data in cache for 30 minutes
+    gcTime: 30 * 60 * 1000, // increased from 10
+    // Retry failed requests 2 times (reduced from 3)
+    retry: 2,
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
+    // Deduplicate identical requests within 5 seconds
+    dedupeInterval: 5000,
   },
   mutations: {
     // Retry mutations 1 time on failure
