@@ -21,7 +21,7 @@ export const Counsellor: React.FC = () => {
 
   return (
     <MainLayout title="AI Counsellor">
-      <div className="h-[calc(100vh-200px)]">
+      <div className="h-[calc(100vh-120px)] sm:h-[calc(100vh-140px)] md:h-[calc(100vh-160px)]">
         <ChatWindow onActionExecute={handleActionExecute} />
       </div>
     </MainLayout>
